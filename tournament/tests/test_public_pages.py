@@ -1,5 +1,6 @@
 from datetime import time
 
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
@@ -8,6 +9,20 @@ from tournament.models import Match, Team
 
 
 class PublicPageTests(TestCase):
+    def test_admin_link_is_only_shown_to_authenticated_users(self):
+        response = self.client.get(reverse('home'))
+
+        self.assertNotContains(response, 'href="/admin/"')
+
+        user = get_user_model().objects.create_user(
+            username='organiser',
+            password='test-password',
+        )
+        self.client.force_login(user)
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, 'href="/admin/"')
+
     def test_homepage_shows_up_to_four_scheduled_matches(self):
         team = Team.objects.create(name='Ravens A', country='Portugal')
         for index in range(5):
