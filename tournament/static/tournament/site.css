@@ -243,8 +243,12 @@ button, input, select { font: inherit; }
 .hero-eyebrow { margin: 0 0 0.45rem; color: var(--ravens-gold); font-size: 0.82rem; font-weight: 850; letter-spacing: 0.12em; text-transform: uppercase; }
 .tournament-hero h1 { max-width: 600px; margin: 0; font-size: clamp(2rem, 6vw, 3.5rem); line-height: 0.98; }
 .hero-details { margin: 1rem 0 1.25rem; color: #dce7f5; font-size: 1rem; line-height: 1.55; }
+.hero-actions { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
 .primary-button { display: inline-flex; min-height: 2.8rem; align-items: center; justify-content: center; padding: 0.65rem 0.95rem; border-radius: 0.45rem; color: var(--ravens-navy); background: var(--ravens-gold); font-weight: 850; text-decoration: none; }
 .primary-button:hover, .primary-button:focus-visible { background: #ffdc67; outline: 2px solid white; outline-offset: 2px; }
+.secondary-button { display: inline-flex; min-height: 2.8rem; align-items: center; justify-content: center; padding: 0.65rem 0.95rem; border: 1px solid rgb(255 255 255 / 60%); border-radius: 0.45rem; color: white; font-weight: 750; text-decoration: none; }
+.secondary-button:hover, .secondary-button:focus-visible { border-color: var(--ravens-gold); color: var(--ravens-gold); outline: 2px solid rgb(245 197 66 / 45%); outline-offset: 2px; }
+.hero-emblem { display: block; width: min(100%, 9rem); height: auto; margin: 0 0 1rem; object-fit: contain; }
 .tournament-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.55rem; margin: 0; }
 .tournament-stats div { padding: 0.75rem; border: 1px solid rgb(255 255 255 / 17%); border-radius: 0.5rem; background: rgb(255 255 255 / 8%); }
 .tournament-stats dt { color: #dce7f5; font-size: 0.78rem; }
@@ -264,7 +268,7 @@ button, input, select { font: inherit; }
 .team-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
 .team-card { display: flex; min-width: 0; gap: 0.8rem; align-items: center; padding: 0.85rem; border: 1px solid var(--border); border-radius: 0.65rem; background: var(--card-bg); box-shadow: 0 1px 2px rgb(7 26 51 / 6%); }
 .team-logo, .team-placeholder { width: 3.6rem; height: 3.6rem; flex: 0 0 3.6rem; border-radius: 50%; }
-.team-logo { object-fit: cover; border: 2px solid var(--ravens-gold); }
+.team-logo { object-fit: contain; border: 2px solid var(--ravens-gold); background: white; }
 .team-placeholder { display: grid; place-items: center; color: var(--ravens-navy); background: #fff0bd; font-size: 1rem; font-weight: 900; letter-spacing: 0.04em; }
 .team-card-content { min-width: 0; }
 .team-card h2 { margin: 0; color: var(--ravens-navy); font-size: 1.05rem; overflow-wrap: anywhere; }

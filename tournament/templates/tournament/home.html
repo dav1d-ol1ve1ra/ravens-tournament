@@ -26,11 +26,16 @@
 
   <main class="page-shell home-page">
     <section class="tournament-hero" aria-labelledby="tournament-title">
-      <div>
+      <div class="hero-main">
+        {# Add a real emblem here later, for example:
+           <img class="hero-emblem" src="{% static 'tournament/images/ravens-emblem.svg' %}" alt="Ravens Tournament emblem"> #}
         <p class="hero-eyebrow">Dodgeball Tournament</p>
         <h1 id="tournament-title">IV Ravens Tournament</h1>
         <p class="hero-details">12&ndash;13 September 2026<br>Pavilhão Multiusos de Penela</p>
-        <a class="primary-button" href="https://maps.app.goo.gl/jKMX9tssZj3ULgRZA" target="_blank" rel="noopener noreferrer">Get Directions</a>
+        <div class="hero-actions">
+          <a class="primary-button" href="https://maps.app.goo.gl/jKMX9tssZj3ULgRZA" target="_blank" rel="noopener noreferrer">Get Directions</a>
+          <a class="secondary-button" href="https://linktr.ee/4th_ravens_tournament" target="_blank" rel="noopener noreferrer">More Tournament Info</a>
+        </div>
       </div>
       <dl class="tournament-stats" aria-label="Tournament summary">
         <div><dt>Teams</dt><dd>9</dd></div>

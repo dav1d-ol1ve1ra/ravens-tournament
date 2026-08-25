@@ -123,7 +123,12 @@ These steps are for production deployment. Keep production secrets out of Git an
    - URL: `/static/`
    - Directory: `/home/<account-name>/<project-directory>/staticfiles`
 
-   If team logos are uploaded later, also map `/media/` to the project's `media` directory.
+   Uploaded team logos use media files, not static files. Add this second mapping:
+
+   - URL: `/media/`
+   - Directory: `/home/<USERNAME>/ravens-tournament/media`
+
+   Static assets are served from `/static/`; uploaded media is served from `/media/`. The `media` directory is ignored by Git and must be retained separately on PythonAnywhere.
 
 8. Reload the web app from the Web tab. After future deployments, activate the virtual environment, export the production variables, apply migrations, rerun `collectstatic`, and reload.
 

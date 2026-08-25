@@ -1,5 +1,6 @@
 from datetime import time
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
@@ -24,6 +25,7 @@ class PublicPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'IV Ravens Tournament')
         self.assertContains(response, 'Ravens A')
+        self.assertContains(response, 'https://linktr.ee/4th_ravens_tournament')
         self.assertEqual(response.content.count(b'<article class="next-match">'), 4)
 
     def test_teams_page_shows_country_and_placeholder(self):
@@ -35,3 +37,16 @@ class PublicPageTests(TestCase):
         self.assertContains(response, 'Ravens A')
         self.assertContains(response, 'Portugal')
         self.assertContains(response, 'RA')
+
+    def test_teams_page_shows_an_uploaded_logo_when_available(self):
+        team = Team.objects.create(
+            name='Ravens A',
+            country='Portugal',
+            logo=SimpleUploadedFile('ravens-logo.png', b'logo-content'),
+        )
+
+        response = self.client.get(reverse('teams'))
+
+        self.assertContains(response, team.logo.url)
+        self.assertContains(response, 'Ravens A logo')
+        team.logo.delete(save=False)
