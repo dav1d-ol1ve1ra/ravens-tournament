@@ -1,0 +1,53 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teams | Ravens Tournament</title>
+  <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="brand" href="{% url 'home' %}">Ravens Tournament</a>
+      <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
+      <a class="nav-link" href="{% url 'standings' %}">Standings</a>
+      <a class="nav-link" href="{% url 'teams' %}" aria-current="page">Teams</a>
+      {% if user.is_authenticated %}
+        <a class="nav-link" href="{% url 'results_admin' %}">Result Entry</a>
+        <form class="nav-logout-form" method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="nav-logout" type="submit">Log out</button>
+        </form>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <h1 class="page-title">Teams</h1>
+    <div class="team-grid">
+      {% for team in teams %}
+        <article class="team-card">
+          {% if team.logo %}
+            <img class="team-logo" src="{{ team.logo.url }}" alt="{{ team.name }} logo">
+          {% else %}
+            <span class="team-placeholder" aria-hidden="true">{{ team.initials }}</span>
+          {% endif %}
+          <div class="team-card-content">
+            <h2>{{ team.name }}</h2>
+            <p class="team-country"><span aria-hidden="true">{{ team.country_flag }}</span> {{ team.country|default:"Country to be confirmed" }}</p>
+            {% if team.group_slot %}
+              <p class="team-group">Group {{ team.group_slot|slice:":1" }} &middot; Slot {{ team.group_slot }}</p>
+            {% else %}
+              <p class="team-group">Group draw pending</p>
+            {% endif %}
+          </div>
+        </article>
+      {% empty %}
+        <p class="empty-state">No teams have been added yet.</p>
+      {% endfor %}
+    </div>
+  </main>
+</body>
+</html>

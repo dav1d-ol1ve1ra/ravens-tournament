@@ -1,0 +1,67 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schedule | Ravens Tournament</title>
+  <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="brand" href="{% url 'home' %}">Ravens Tournament</a>
+      <a class="nav-link" href="{% url 'schedule' %}" aria-current="page">Schedule</a>
+      <a class="nav-link" href="{% url 'standings' %}">Standings</a>
+      <a class="nav-link" href="{% url 'teams' %}">Teams</a>
+      {% if user.is_authenticated %}
+        <a class="nav-link" href="{% url 'results_admin' %}">Result Entry</a>
+        <form class="nav-logout-form" method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="nav-logout" type="submit">Log out</button>
+        </form>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <h1 class="page-title">Schedule</h1>
+
+    {% for day in days %}
+      <section aria-labelledby="day-{{ day.number }}">
+        <h2 class="section-title" id="day-{{ day.number }}">Day {{ day.number }}</h2>
+        <div class="schedule-list">
+          {% for match in day.matches %}
+            <article class="schedule-match {% if match.status == 'finished' %}is-finished{% endif %}">
+              <div class="match-topline">
+                <span class="match-time">{{ match.start_time|time:"H:i" }}</span>
+                <span>{{ match.court }}</span>
+                {% if match.phase_label %}<span class="phase-label">{{ match.phase_label }}</span>{% endif %}
+                {% if match.status == "finished" %}
+                  <span class="match-state state-finished">Finished</span>
+                {% else %}
+                  <span class="match-state state-scheduled">Scheduled</span>
+                {% endif %}
+              </div>
+              <div class="schedule-pair">
+                <span class="schedule-team">{% if match.home_team %}{{ match.home_team.name }}{% else %}{{ match.home_slot }}{% endif %}</span>
+                {% if match.status == "finished" %}
+                  <span class="match-score is-result">{{ match.home_score }} - {{ match.away_score }}</span>
+                {% else %}
+                  <span class="match-score">vs</span>
+                {% endif %}
+                <span class="schedule-team">{% if match.away_team %}{{ match.away_team.name }}{% else %}{{ match.away_slot }}{% endif %}</span>
+              </div>
+              <div class="match-referee">
+                Referee: {% if match.referee_team %}{{ match.referee_team.name }}{% else %}{{ match.referee_slot }}{% endif %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% empty %}
+      <p class="empty-state">No matches are scheduled yet.</p>
+    {% endfor %}
+  </main>
+</body>
+</html>

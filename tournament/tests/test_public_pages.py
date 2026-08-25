@@ -1,0 +1,37 @@
+from datetime import time
+
+from django.test import TestCase
+from django.urls import reverse
+
+from tournament.models import Match, Team
+
+
+class PublicPageTests(TestCase):
+    def test_homepage_shows_up_to_four_scheduled_matches(self):
+        team = Team.objects.create(name='Ravens A', country='Portugal')
+        for index in range(5):
+            Match.objects.create(
+                day=1,
+                start_time=time(10 + index, 0),
+                court='Court A',
+                home_slot='A1',
+                away_slot='A2',
+                home_team=team,
+            )
+
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'IV Ravens Tournament')
+        self.assertContains(response, 'Ravens A')
+        self.assertEqual(response.content.count(b'<article class="next-match">'), 4)
+
+    def test_teams_page_shows_country_and_placeholder(self):
+        Team.objects.create(name='Ravens A', country='Portugal')
+
+        response = self.client.get(reverse('teams'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ravens A')
+        self.assertContains(response, 'Portugal')
+        self.assertContains(response, 'RA')

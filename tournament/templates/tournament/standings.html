@@ -1,0 +1,80 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Standings | Ravens Tournament</title>
+  <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="brand" href="{% url 'home' %}">Ravens Tournament</a>
+      <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
+      <a class="nav-link" href="{% url 'standings' %}" aria-current="page">Standings</a>
+      <a class="nav-link" href="{% url 'teams' %}">Teams</a>
+      {% if user.is_authenticated %}
+        <a class="nav-link" href="{% url 'results_admin' %}">Result Entry</a>
+        <form class="nav-logout-form" method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="nav-logout" type="submit">Log out</button>
+        </form>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <h1 class="page-title">Group Stage Standings</h1>
+
+    {% for code, rows in standings_by_group.items %}
+      <section aria-labelledby="group-{{ code }}">
+        <h2 class="section-title" id="group-{{ code }}">Group {{ code }}</h2>
+        {% if rows %}
+          <div class="standings-wrap" tabindex="0" aria-label="Group {{ code }} standings table">
+            <table class="standings-table">
+              <thead>
+                <tr>
+                  <th scope="col">Pos</th>
+                  <th scope="col">Team</th>
+                  <th scope="col"><abbr title="Played">P</abbr></th>
+                  <th scope="col"><abbr title="Wins">W</abbr></th>
+                  <th scope="col"><abbr title="Draws">D</abbr></th>
+                  <th scope="col"><abbr title="Losses">L</abbr></th>
+                  <th scope="col"><abbr title="Sets For">SF</abbr></th>
+                  <th scope="col"><abbr title="Sets Against">SA</abbr></th>
+                  <th scope="col"><abbr title="Set Difference">+/-</abbr></th>
+                  <th scope="col"><abbr title="Points">Pts</abbr></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in rows %}
+                  <tr>
+                    <td class="position-cell">{% if row.position %}{{ row.position }}{% else %}&mdash;{% endif %}</td>
+                    <td>
+                      <span class="team-name">{{ row.team.name }}</span>
+                      {% if row.requires_manual_tiebreak %}
+                        <span class="manual-tiebreak">Manual tie-break required</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ row.played }}</td>
+                    <td>{{ row.wins }}</td>
+                    <td>{{ row.draws }}</td>
+                    <td>{{ row.losses }}</td>
+                    <td>{{ row.sets_for }}</td>
+                    <td>{{ row.sets_against }}</td>
+                    <td>{{ row.set_difference }}</td>
+                    <td class="points-cell">{{ row.ranking_points }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="empty-state">No teams assigned yet.</p>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </main>
+</body>
+</html>

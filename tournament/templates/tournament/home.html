@@ -1,0 +1,66 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IV Ravens Tournament</title>
+  <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="brand" href="{% url 'home' %}" aria-current="page">Ravens Tournament</a>
+      <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
+      <a class="nav-link" href="{% url 'standings' %}">Standings</a>
+      <a class="nav-link" href="{% url 'teams' %}">Teams</a>
+      {% if user.is_authenticated %}
+        <a class="nav-link" href="{% url 'results_admin' %}">Result Entry</a>
+        <form class="nav-logout-form" method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="nav-logout" type="submit">Log out</button>
+        </form>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="page-shell home-page">
+    <section class="tournament-hero" aria-labelledby="tournament-title">
+      <div>
+        <p class="hero-eyebrow">Dodgeball Tournament</p>
+        <h1 id="tournament-title">IV Ravens Tournament</h1>
+        <p class="hero-details">12&ndash;13 September 2026<br>Pavilhão Multiusos de Penela</p>
+        <a class="primary-button" href="https://maps.app.goo.gl/jKMX9tssZj3ULgRZA" target="_blank" rel="noopener noreferrer">Get Directions</a>
+      </div>
+      <dl class="tournament-stats" aria-label="Tournament summary">
+        <div><dt>Teams</dt><dd>9</dd></div>
+        <div><dt>Matches</dt><dd>18</dd></div>
+        <div><dt>Courts</dt><dd>2</dd></div>
+        <div><dt>Days</dt><dd>2</dd></div>
+      </dl>
+    </section>
+
+    <section class="quick-links" aria-label="Tournament pages">
+      <a href="{% url 'schedule' %}"><strong>Schedule</strong><span>Fixtures and results</span></a>
+      <a href="{% url 'standings' %}"><strong>Standings</strong><span>Group rankings</span></a>
+      <a href="{% url 'teams' %}"><strong>Teams</strong><span>Meet the competitors</span></a>
+    </section>
+
+    <section aria-labelledby="next-matches-title">
+      <h2 class="section-title" id="next-matches-title">Next Matches</h2>
+      {% if next_matches %}
+        <div class="next-match-list">
+          {% for match in next_matches %}
+            <article class="next-match">
+              <div class="next-match-meta">Day {{ match.day }} &middot; {{ match.start_time|time:"H:i" }} &middot; {{ match.court }}</div>
+              <div class="next-match-pair"><span>{{ match.home_participant }}</span><span>vs</span><span>{{ match.away_participant }}</span></div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-state">There are no scheduled matches remaining.</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>
