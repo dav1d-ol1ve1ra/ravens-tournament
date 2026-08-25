@@ -56,6 +56,18 @@ Local development uses `DEBUG=True`, local hosts, and a development-only secret 
 
 The resolution commands are development and admin utilities. Normal tournament result entry automatically performs the required Day 2 slot resolution after a valid result is saved.
 
+## Database backups
+
+Create a timestamped SQLite backup before the tournament, and before any significant administrative change:
+
+```bash
+python manage.py backup_database
+```
+
+Backups are written to `backups/` and are not stored in Git.
+
+To restore a backup, stop or reload the application as appropriate, make a backup of the current database first, replace `db.sqlite3` with the selected backup, then reload the application. Do not restore a database casually during the tournament; it replaces live result and organiser data.
+
 ## PythonAnywhere deployment
 
 These steps are for production deployment. Keep production secrets out of Git and do not reuse the development fallback secret.
@@ -93,6 +105,12 @@ These steps are for production deployment. Keep production secrets out of Git an
    python manage.py seed_tournament
    python manage.py createsuperuser
    python manage.py collectstatic --noinput
+   ```
+
+   Before the tournament, with the production environment variables configured, organisers should run:
+
+   ```bash
+   python manage.py backup_database
    ```
 
 5. In PythonAnywhere's **Web** tab, create a web app using **Manual Configuration**, select the same Python version, and configure its virtual environment and working directory.
