@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from django.db import transaction
 
-from tournament.models import Match, Team
+from tournament.models import Group, Match, Team
 from tournament.services.standings import calculate_group_stage_standings
 
 
@@ -20,6 +20,18 @@ MATCH_SLOT_FIELDS = (
     ('away_slot', 'away_team'),
     ('referee_slot', 'referee_team'),
 )
+
+
+def _uses_legacy_three_by_three_format():
+    configured_codes = set(Group.objects.values_list('code', flat=True))
+    if configured_codes and configured_codes != set(GROUP_CODES):
+        return False
+
+    legacy_slots = {slot for slots in GROUP_SLOTS.values() for slot in slots}
+    assigned_slots = set(
+        Team.objects.exclude(group_slot='').values_list('group_slot', flat=True)
+    )
+    return not any(slot not in legacy_slots for slot in assigned_slots)
 
 
 @dataclass
@@ -77,6 +89,15 @@ def _requested_ranking_slots(matches):
 
 
 def _resolve_ranking_slots(requested_slots):
+    if not _uses_legacy_three_by_three_format():
+        return {}, {
+            slot: (
+                'Automatic ranking-slot resolution is disabled for the current '
+                'tournament format'
+            )
+            for slot in requested_slots
+        }
+
     standings = calculate_group_stage_standings()
     missing_pairs = _missing_group_stage_pairs()
     resolved_slots = {}

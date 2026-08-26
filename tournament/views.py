@@ -47,6 +47,10 @@ def schedule(request):
             'final_1_3': '1st\u20133rd Place',
             'final_4_6': '4th\u20136th Place',
             'final_7_9': '7th\u20139th Place',
+            'upper_semifinal': 'Upper Semifinal',
+            'upper_third_place': 'Upper Third Place',
+            'upper_final': 'Upper Final',
+            'lower_round_robin': 'Lower Round Robin',
         }
     )
     matches = Match.objects.select_related(

@@ -58,9 +58,17 @@ The resolution commands are development and admin utilities. Normal tournament r
 
 ## Tournament format note
 
-Group-stage standings support arbitrary group sizes and derive membership from each team's group slot, using configured `Group` records where available. The seeded tournament remains the current three-groups-of-three format. Day 2 ranking-slot progression is still intentionally specific to that format; knockout and bracket logic has not been generalised.
+Group-stage standings support arbitrary group sizes and derive membership from each team's group slot, using configured `Group` records where available. The confirmed seed uses five teams in Group A and four teams in Group B. Automatic Upper/Lower progression and winner/loser resolution have not been implemented; the legacy 3×3 Day 2 resolver disables itself when the confirmed group structure is present.
 
-`ScheduleEvent` is the future source of schedule structure and supports explicit, independently variable start and end times. During the transition, existing `Match.day`, `Match.start_time`, and `Match.court` values remain authoritative for current pages, and matches may optionally link to an event. A later migration will create and verify the new schedule events before any legacy timing fields are retired; there is intentionally no automatic synchronization between the two representations.
+`ScheduleEvent` stores the complete seeded calendar with explicit, independently variable start and end times. Every seeded match links to its event, while ceremonies, lunches, and free periods exist only as events. Existing `Match.day`, `Match.start_time`, and `Match.court` values remain populated for current pages; there is intentionally no automatic synchronization between the two representations.
+
+To replace an existing old-format development schedule explicitly, run:
+
+```bash
+python manage.py seed_tournament --reset-schedule
+```
+
+This removes tournament Groups, Matches, and ScheduleEvents and clears team slot assignments before rebuilding. It preserves Team identities, names, countries, short names, and uploaded-logo references. A normal `seed_tournament` run refuses incompatible existing schedule data and is safe to repeat for an empty or already-confirmed structure.
 
 ## Database backups
 

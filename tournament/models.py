@@ -66,6 +66,7 @@ class Match(models.Model):
         null=True,
         blank=True,
     )
+    match_code = models.CharField(max_length=20, blank=True)
     group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.CharField(max_length=50, blank=True)
     home_slot = models.CharField(max_length=20, blank=True)
@@ -95,6 +96,15 @@ class Match(models.Model):
         blank=True,
     )
     status = models.CharField(max_length=9, choices=Status.choices, default=Status.SCHEDULED)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['match_code'],
+                condition=~models.Q(match_code=''),
+                name='unique_nonempty_match_code',
+            )
+        ]
 
     def __str__(self):
         home = self.home_team or self.home_slot or 'TBD'

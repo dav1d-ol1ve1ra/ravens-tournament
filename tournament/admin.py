@@ -33,6 +33,7 @@ class MatchAdmin(admin.ModelAdmin):
         'start_time',
         'court',
         'phase',
+        'match_code',
         'home_slot',
         'away_slot',
         'referee_slot',
