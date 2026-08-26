@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 from django.test import TestCase
 
-from tournament.models import Match, Team
+from tournament.models import Group, Match, Team
 from tournament.services.standings import (
     _tie_break_key,
     calculate_group_stage_standings,
@@ -168,3 +168,78 @@ class GroupStageStandingsTests(TestCase):
         self.assertEqual(len(tied_rows), 2)
         self.assertTrue(all(row.requires_manual_tiebreak for row in tied_rows))
         self.assertTrue(all(row.position is None for row in tied_rows))
+
+
+class VariableGroupSizeStandingsTests(TestCase):
+    def create_group_teams(self, code, team_count):
+        Group.objects.create(name=f'Group {code}', code=code)
+        return [
+            Team.objects.create(
+                name=f'Team {code}{position}',
+                group_slot=f'{code}{position}',
+            )
+            for position in range(1, team_count + 1)
+        ]
+
+    def create_match(self, home_team, away_team, home_score, away_score):
+        return Match.objects.create(
+            day=1,
+            start_time=time(10, 0),
+            court='Court A',
+            phase='group_stage',
+            home_slot=home_team.group_slot,
+            away_slot=away_team.group_slot,
+            home_team=home_team,
+            away_team=away_team,
+            home_score=home_score,
+            away_score=away_score,
+            status=Match.Status.FINISHED,
+        )
+
+    def test_group_with_three_teams(self):
+        teams = self.create_group_teams('A', 3)
+
+        rows = calculate_group_stage_standings()['A']
+
+        self.assertEqual({row.team for row in rows}, set(teams))
+
+    def test_group_with_four_teams(self):
+        teams = self.create_group_teams('A', 4)
+        self.create_match(teams[3], teams[0], 3, 1)
+
+        rows = calculate_group_stage_standings()['A']
+
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(rows[0].team, teams[3])
+        self.assertEqual(rows[0].ranking_points, 2)
+
+    def test_group_with_five_teams(self):
+        teams = self.create_group_teams('A', 5)
+        self.create_match(teams[4], teams[0], 2, 0)
+
+        rows = calculate_group_stage_standings()['A']
+
+        self.assertEqual(len(rows), 5)
+        self.assertEqual(rows[0].team, teams[4])
+
+    def test_multiple_groups_can_have_different_team_counts(self):
+        teams_a = self.create_group_teams('A', 5)
+        teams_b = self.create_group_teams('B', 4)
+
+        standings = calculate_group_stage_standings()
+
+        self.assertEqual({row.team for row in standings['A']}, set(teams_a))
+        self.assertEqual({row.team for row in standings['B']}, set(teams_b))
+
+    def test_head_to_head_tie_breaking_works_in_larger_group(self):
+        team_a, team_b, team_c, team_d = self.create_group_teams('A', 4)
+        self.create_match(team_d, team_a, 1, 0)
+        self.create_match(team_d, team_b, 1, 0)
+        self.create_match(team_a, team_b, 1, 0)
+        self.create_match(team_b, team_c, 10, 0)
+
+        rows = calculate_group_stage_standings()['A']
+
+        self.assertEqual([row.team for row in rows], [team_d, team_a, team_b, team_c])
+        self.assertGreater(rows[2].set_difference, rows[1].set_difference)
+        self.assertEqual(rows[2].set_difference, 8)

@@ -18,12 +18,12 @@ class Command(BaseCommand):
             ('Ravens A', 'Portugal'),
             ('Ravens B', 'Portugal'),
             ('Vulcanense', 'Portugal'),
-            ('London Saints', 'United Kingdom'),
-            ('London Saints 2', 'United Kingdom'),
+            ('London Saints A', 'England'),
+            ('London Saints B', 'England'),
             ('Ruddled Raiders', 'United Kingdom'),
-            ('To be determined', 'Netherlands'),
+            ('Wild Cards', 'Netherlands'),
             ('Bouncy Badgers', 'Hungary'),
-            ('Lord of the Wings', 'United Kingdom'),
+            ('Lord of the Wings', 'England'),
         ]
 
         created_groups = 0

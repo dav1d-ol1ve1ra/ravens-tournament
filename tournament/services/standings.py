@@ -1,14 +1,11 @@
 from dataclasses import dataclass
 from itertools import groupby
+import re
 
-from tournament.models import Match, Team
+from tournament.models import Group, Match, Team
 
 
-GROUP_CODES = ('A', 'B', 'C')
-GROUP_SLOTS = {
-    code: tuple(f'{code}{position}' for position in range(1, 4))
-    for code in GROUP_CODES
-}
+GROUP_SLOT_PATTERN = re.compile(r'^(?P<group_code>.+?)(?P<position>[1-9]\d*)$')
 
 
 @dataclass
@@ -35,6 +32,12 @@ def _award_ranking_points(home_score, away_score):
     if home_score < away_score:
         return 0, 2
     return 1, 1
+
+
+def _group_code_from_slot(slot):
+    """Return the group-code portion of a slot such as A1 or B12."""
+    match = GROUP_SLOT_PATTERN.fullmatch(slot or '')
+    return match.group('group_code') if match else None
 
 
 def _record_result(home_row, away_row, home_score, away_score):
@@ -111,22 +114,31 @@ def _order_rows(rows, results):
 
 
 def calculate_group_stage_standings():
-    """Calculate current Group A, B and C standings from finished matches."""
-    teams = list(
-        Team.objects.filter(
-            group_slot__in=[slot for slots in GROUP_SLOTS.values() for slot in slots]
-        )
+    """Calculate standings for every configured or assigned tournament group."""
+    configured_codes = list(
+        Group.objects.order_by('code', 'pk').values_list('code', flat=True)
     )
+    group_codes = list(dict.fromkeys(configured_codes))
+    teams = list(Team.objects.exclude(group_slot='').order_by('pk'))
     teams_by_slot = {team.group_slot: team for team in teams}
-    rows_by_group = {
-        code: {
-            team.id: StandingRow(team=team)
-            for team in teams
-            if team.group_slot in GROUP_SLOTS[code]
-        }
-        for code in GROUP_CODES
-    }
-    results_by_group = {code: [] for code in GROUP_CODES}
+    team_group_codes = {}
+
+    for team in teams:
+        group_code = _group_code_from_slot(team.group_slot)
+        if group_code is None:
+            continue
+        if configured_codes and group_code not in group_codes:
+            continue
+        team_group_codes[team.id] = group_code
+        if group_code not in group_codes:
+            group_codes.append(group_code)
+
+    rows_by_group = {code: {} for code in group_codes}
+    results_by_group = {code: [] for code in group_codes}
+    for team in teams:
+        group_code = team_group_codes.get(team.id)
+        if group_code is not None:
+            rows_by_group[group_code][team.id] = StandingRow(team=team)
 
     matches = Match.objects.filter(
         phase='group_stage',
@@ -141,7 +153,9 @@ def calculate_group_stage_standings():
         if home_team is None or away_team is None:
             continue
 
-        group_code = home_team.group_slot[:1]
+        group_code = team_group_codes.get(home_team.id)
+        if group_code != team_group_codes.get(away_team.id):
+            continue
         group_rows = rows_by_group.get(group_code, {})
         if home_team.id not in group_rows or away_team.id not in group_rows:
             continue
@@ -158,5 +172,5 @@ def calculate_group_stage_standings():
 
     return {
         code: _order_rows(list(rows_by_group[code].values()), results_by_group[code])
-        for code in GROUP_CODES
+        for code in group_codes
     }

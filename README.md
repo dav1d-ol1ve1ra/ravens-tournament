@@ -56,6 +56,10 @@ Local development uses `DEBUG=True`, local hosts, and a development-only secret 
 
 The resolution commands are development and admin utilities. Normal tournament result entry automatically performs the required Day 2 slot resolution after a valid result is saved.
 
+## Tournament format note
+
+Group-stage standings support arbitrary group sizes and derive membership from each team's group slot, using configured `Group` records where available. The seeded tournament remains the current three-groups-of-three format. Day 2 ranking-slot progression is still intentionally specific to that format; knockout and bracket logic has not been generalised.
+
 ## Database backups
 
 Create a timestamped SQLite backup before the tournament, and before any significant administrative change:

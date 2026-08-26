@@ -3,13 +3,15 @@ from dataclasses import dataclass
 from django.db import transaction
 
 from tournament.models import Match, Team
-from tournament.services.standings import (
-    GROUP_CODES,
-    GROUP_SLOTS,
-    calculate_group_stage_standings,
-)
+from tournament.services.standings import calculate_group_stage_standings
 
 
+# Day 2 still deliberately represents the currently seeded 3x3 format.
+GROUP_CODES = ('A', 'B', 'C')
+GROUP_SLOTS = {
+    code: tuple(f'{code}{position}' for position in range(1, 4))
+    for code in GROUP_CODES
+}
 RANKING_SLOTS = frozenset(
     f'{position}{group}' for group in GROUP_CODES for position in range(1, 4)
 )
