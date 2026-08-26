@@ -60,6 +60,8 @@ The resolution commands are development and admin utilities. Normal tournament r
 
 Group-stage standings support arbitrary group sizes and derive membership from each team's group slot, using configured `Group` records where available. The seeded tournament remains the current three-groups-of-three format. Day 2 ranking-slot progression is still intentionally specific to that format; knockout and bracket logic has not been generalised.
 
+`ScheduleEvent` is the future source of schedule structure and supports explicit, independently variable start and end times. During the transition, existing `Match.day`, `Match.start_time`, and `Match.court` values remain authoritative for current pages, and matches may optionally link to an event. A later migration will create and verify the new schedule events before any legacy timing fields are retired; there is intentionally no automatic synchronization between the two representations.
+
 ## Database backups
 
 Create a timestamped SQLite backup before the tournament, and before any significant administrative change:

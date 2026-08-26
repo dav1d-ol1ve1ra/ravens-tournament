@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Group, Match, Team
+from .models import Group, Match, ScheduleEvent, Team
 
 
 @admin.register(Team)
@@ -10,6 +10,20 @@ class TeamAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Group)
+
+
+@admin.register(ScheduleEvent)
+class ScheduleEventAdmin(admin.ModelAdmin):
+    list_display = (
+        'day',
+        'start_time',
+        'end_time',
+        'court',
+        'event_type',
+        'label',
+    )
+    list_filter = ('day', 'event_type', 'court')
+    ordering = ('day', 'start_time', 'court')
 
 
 @admin.register(Match)

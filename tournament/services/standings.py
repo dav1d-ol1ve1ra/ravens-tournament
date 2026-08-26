@@ -1,11 +1,8 @@
 from dataclasses import dataclass
 from itertools import groupby
-import re
 
 from tournament.models import Group, Match, Team
-
-
-GROUP_SLOT_PATTERN = re.compile(r'^(?P<group_code>.+?)(?P<position>[1-9]\d*)$')
+from tournament.slots import parse_direct_group_slot
 
 
 @dataclass
@@ -32,12 +29,6 @@ def _award_ranking_points(home_score, away_score):
     if home_score < away_score:
         return 0, 2
     return 1, 1
-
-
-def _group_code_from_slot(slot):
-    """Return the group-code portion of a slot such as A1 or B12."""
-    match = GROUP_SLOT_PATTERN.fullmatch(slot or '')
-    return match.group('group_code') if match else None
 
 
 def _record_result(home_row, away_row, home_score, away_score):
@@ -119,16 +110,16 @@ def calculate_group_stage_standings():
         Group.objects.order_by('code', 'pk').values_list('code', flat=True)
     )
     group_codes = list(dict.fromkeys(configured_codes))
+    configured_code_set = set(group_codes) if group_codes else None
     teams = list(Team.objects.exclude(group_slot='').order_by('pk'))
     teams_by_slot = {team.group_slot: team for team in teams}
     team_group_codes = {}
 
     for team in teams:
-        group_code = _group_code_from_slot(team.group_slot)
-        if group_code is None:
+        parsed_slot = parse_direct_group_slot(team.group_slot, configured_code_set)
+        if parsed_slot is None:
             continue
-        if configured_codes and group_code not in group_codes:
-            continue
+        group_code, _ = parsed_slot
         team_group_codes[team.id] = group_code
         if group_code not in group_codes:
             group_codes.append(group_code)

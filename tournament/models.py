@@ -6,7 +6,7 @@ class Team(models.Model):
     short_name = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=100, blank=True)
     logo = models.FileField(upload_to='team_logos/', blank=True)
-    group_slot = models.CharField(max_length=2, blank=True)
+    group_slot = models.CharField(max_length=20, blank=True)
 
     class Meta:
         constraints = [
@@ -29,6 +29,28 @@ class Group(models.Model):
         return self.name
 
 
+class ScheduleEvent(models.Model):
+    class EventType(models.TextChoices):
+        MATCH = 'match', 'Match'
+        OPENING_CEREMONY = 'opening_ceremony', 'Opening Ceremony'
+        LUNCH = 'lunch', 'Lunch'
+        CLOSING_CEREMONY = 'closing_ceremony', 'Closing Ceremony'
+        FREE = 'free', 'Free'
+
+    day = models.PositiveSmallIntegerField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    court = models.CharField(max_length=100, blank=True)
+    event_type = models.CharField(max_length=20, choices=EventType.choices)
+    label = models.CharField(max_length=200)
+
+    class Meta:
+        ordering = ('day', 'start_time', 'court')
+
+    def __str__(self):
+        return f'Day {self.day} {self.start_time:%H:%M} - {self.label}'
+
+
 class Match(models.Model):
     class Status(models.TextChoices):
         SCHEDULED = 'scheduled', 'Scheduled'
@@ -37,6 +59,13 @@ class Match(models.Model):
     day = models.PositiveSmallIntegerField()
     start_time = models.TimeField()
     court = models.CharField(max_length=100)
+    schedule_event = models.OneToOneField(
+        ScheduleEvent,
+        on_delete=models.SET_NULL,
+        related_name='match',
+        null=True,
+        blank=True,
+    )
     group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True)
     phase = models.CharField(max_length=50, blank=True)
     home_slot = models.CharField(max_length=20, blank=True)
