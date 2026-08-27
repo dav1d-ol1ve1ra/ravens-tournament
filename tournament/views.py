@@ -11,6 +11,7 @@ from .forms import MatchResultForm
 from .models import Match, ScheduleEvent, Team
 from .presentation import COUNTRY_FLAGS, participant_name, team_initials
 from .services.knockout_slots import resolve_knockout_slots
+from .services.lower_standings import calculate_lower_standings
 from .services.progression_slots import resolve_progression_slots
 from .services.standings import calculate_group_stage_standings
 
@@ -24,6 +25,13 @@ SCHEDULE_PHASE_LABELS = {
     'upper_third_place': 'Upper Third Place',
     'upper_final': 'Upper Final',
     'lower_round_robin': 'Lower Round Robin',
+}
+
+UPPER_MATCH_LABELS = {
+    'UB-01': 'Semi-final 1',
+    'UB-02': 'Semi-final 2',
+    'UB-03': 'Third Place',
+    'UB-04': 'Final',
 }
 
 
@@ -247,10 +255,42 @@ def schedule(request):
 
 
 def standings(request):
+    calculated_groups = calculate_group_stage_standings()
+    upper_matches_by_code = {
+        match.match_code: match
+        for match in Match.objects.filter(match_code__in=UPPER_MATCH_LABELS)
+        .select_related('home_team', 'away_team')
+    }
+    upper_matches = {}
+    for match_code, label in UPPER_MATCH_LABELS.items():
+        match = upper_matches_by_code.get(match_code)
+        if match is None:
+            continue
+        match.display_label = label
+        match.home_participant = participant_name(match, 'home')
+        match.away_participant = participant_name(match, 'away')
+        upper_matches[match_code] = match
+
     return render(
         request,
         'tournament/standings.html',
-        {'standings_by_group': calculate_group_stage_standings()},
+        {
+            'standings_by_group': {
+                'A': calculated_groups.get('A', []),
+                'B': calculated_groups.get('B', []),
+            },
+            'upper_semifinals': [
+                upper_matches[code]
+                for code in ('UB-01', 'UB-02')
+                if code in upper_matches
+            ],
+            'upper_placement_matches': [
+                upper_matches[code]
+                for code in ('UB-03', 'UB-04')
+                if code in upper_matches
+            ],
+            'lower_standings': calculate_lower_standings(),
+        },
     )
 
 

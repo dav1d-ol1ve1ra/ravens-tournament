@@ -1,0 +1,40 @@
+<p class="standings-scroll-hint">Swipe horizontally to see all stats</p>
+<div class="standings-wrap" tabindex="0" aria-label="{{ table_label }} standings table">
+  <table class="standings-table">
+    <thead>
+      <tr>
+        <th scope="col">Pos</th>
+        <th scope="col">Team</th>
+        <th scope="col"><abbr title="Played">P</abbr></th>
+        <th scope="col"><abbr title="Wins">W</abbr></th>
+        <th scope="col"><abbr title="Draws">D</abbr></th>
+        <th scope="col"><abbr title="Losses">L</abbr></th>
+        <th scope="col"><abbr title="Sets For">SF</abbr></th>
+        <th scope="col"><abbr title="Sets Against">SA</abbr></th>
+        <th scope="col"><abbr title="Set Difference">+/-</abbr></th>
+        <th scope="col"><abbr title="Points">Pts</abbr></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="position-cell">{% if row.position %}{{ row.position }}{% else %}&mdash;{% endif %}</td>
+          <td>
+            <span class="team-name">{{ row.team.name }}</span>
+            {% if row.requires_manual_tiebreak %}
+              <span class="manual-tiebreak">Manual tie-break required</span>
+            {% endif %}
+          </td>
+          <td>{{ row.played }}</td>
+          <td>{{ row.wins }}</td>
+          <td>{{ row.draws }}</td>
+          <td>{{ row.losses }}</td>
+          <td>{{ row.sets_for }}</td>
+          <td>{{ row.sets_against }}</td>
+          <td>{{ row.set_difference }}</td>
+          <td class="points-cell">{{ row.ranking_points }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

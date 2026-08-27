@@ -237,6 +237,10 @@ button, input, select { font: inherit; }
 .court-empty { color: #9aa8b8; }
 
 /* Standings */
+.standings-stage { margin-top: 1.6rem; }
+.standings-stage:first-of-type { margin-top: 0; }
+.stage-title { margin: 0 0 0.85rem; color: var(--ravens-navy); font-size: clamp(1.25rem, 3vw, 1.65rem); }
+.standings-scroll-hint { display: none; margin: 0 0 0.4rem; color: var(--muted); font-size: 0.78rem; }
 .standings-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -255,6 +259,19 @@ button, input, select { font: inherit; }
 .points-cell { color: var(--ravens-navy); background: #fff7d7; font-weight: 850; }
 .team-name { font-weight: 750; }
 .manual-tiebreak { display: block; width: fit-content; margin-top: 0.25rem; padding: 0.15rem 0.42rem; border-radius: 99px; color: #805900; background: #fff0bd; font-size: 0.7rem; font-weight: 750; white-space: nowrap; }
+.upper-bracket { display: grid; gap: 0.9rem; }
+.upper-round { display: grid; gap: 0.65rem; align-content: start; padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.7rem; background: #eef2f6; }
+.upper-round h3 { margin: 0; color: var(--ravens-navy); font-size: 0.82rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.upper-match-card { display: grid; gap: 0.65rem; padding: 0.8rem; border: 1px solid #cbd5e0; border-left: 5px solid var(--ravens-gold); border-radius: 0.6rem; background: white; box-shadow: 0 2px 5px rgb(7 26 51 / 7%); }
+.upper-match-card.is-finished { border-left-color: #8290a0; background: #fafbfd; }
+.upper-match-header { display: flex; gap: 0.6rem; align-items: center; justify-content: space-between; color: var(--ravens-navy); font-size: 0.9rem; font-weight: 850; }
+.upper-match-header strong { color: var(--ravens-navy-light); font-size: 0.75rem; letter-spacing: 0.04em; }
+.bracket-participants { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 0.5rem; align-items: center; padding: 0.65rem 0; border-top: 1px solid #e3e8ee; border-bottom: 1px solid #e3e8ee; color: var(--ravens-navy); }
+.bracket-participants strong { overflow-wrap: anywhere; }
+.bracket-participants strong:last-child { text-align: right; }
+.bracket-score { min-width: 3.3rem; padding: 0.22rem 0.4rem; border-radius: 0.35rem; color: var(--ravens-navy); background: #fff0bd; font-size: 1.05rem; font-weight: 900; text-align: center; }
+.bracket-versus { min-width: 2rem; color: var(--muted); font-size: 0.78rem; font-weight: 850; text-align: center; text-transform: uppercase; }
+.upper-match-card .match-state { width: fit-content; margin-left: 0; }
 
 /* Result entry */
 .filter-panel {
@@ -352,8 +369,12 @@ button, input, select { font: inherit; }
   .court-grid { min-width: 920px; }
   .court-grid th, .court-grid td { min-width: 250px; }
   .court-event, .court-match { min-height: 5.7rem; }
+  .standings-scroll-hint { display: block; }
   .standings-table { min-width: 610px; }
   .standings-table th, .standings-table td { padding: 0.6rem 0.48rem; font-size: 0.86rem; }
+  .standings-table th:first-child, .standings-table td:first-child { position: sticky; left: 0; z-index: 2; background: white; }
+  .standings-table th:nth-child(2), .standings-table td:nth-child(2) { position: sticky; left: 3.2rem; z-index: 2; min-width: 10rem; background: white; box-shadow: 3px 0 5px rgb(7 26 51 / 8%); }
+  .standings-table thead th:first-child, .standings-table thead th:nth-child(2) { z-index: 3; background: #edf1f5; }
   .result-line { grid-template-columns: minmax(0, 1fr) 3rem auto 3rem minmax(0, 1fr); gap: 0.3rem; }
   .result-team { font-size: 0.88rem; }
   .result-footer { align-items: flex-end; }
@@ -363,6 +384,7 @@ button, input, select { font: inherit; }
 
 @media (min-width: 760px) {
   .tournament-hero { grid-template-columns: minmax(0, 1.35fr) minmax(250px, 0.65fr); align-items: center; }
+  .upper-bracket { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 }
 
 @media (min-width: 700px) {

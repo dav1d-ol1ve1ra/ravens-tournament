@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from itertools import combinations
-
 from django.db import transaction
 
 from tournament.models import Group, Match, Team
-from tournament.services.standings import calculate_group_stage_standings
+from tournament.services.standings import (
+    calculate_group_stage_standings,
+    calculate_round_robin_completion,
+)
 from tournament.slots import parse_direct_group_slot
 
 
@@ -51,35 +52,23 @@ def _group_incomplete_reason(group, rows, group_stage_matches):
     if len(team_slots) < 2:
         return f'{group.name} does not have enough assigned teams'
 
-    expected_pairs = {
-        frozenset(pair) for pair in combinations(sorted(team_slots), 2)
-    }
     matches = [
         match
         for match in group_stage_matches
         if _match_group_code(match) == group.code
     ]
-    scheduled_pairs = [
-        frozenset((match.home_slot, match.away_slot)) for match in matches
-    ]
+    completion = calculate_round_robin_completion(team_slots, matches)
 
-    if len(matches) != len(expected_pairs) or set(scheduled_pairs) != expected_pairs:
+    if not completion.schedule_complete:
         return (
             f'{group.name} schedule is incomplete; expected '
-            f'{len(expected_pairs)} round-robin match(es), found {len(matches)}'
+            f'{completion.expected_matches} round-robin match(es), found '
+            f'{completion.scheduled_matches}'
         )
-
-    finished_matches = [
-        match
-        for match in matches
-        if match.status == Match.Status.FINISHED
-        and match.home_score is not None
-        and match.away_score is not None
-    ]
-    if len(finished_matches) != len(matches):
+    if not completion.is_complete:
         return (
-            f'{group.name} is incomplete; {len(finished_matches)} of '
-            f'{len(matches)} Group Stage match(es) are finished'
+            f'{group.name} is incomplete; {completion.finished_matches} of '
+            f'{completion.expected_matches} Group Stage match(es) are finished'
         )
 
     return None

@@ -26,56 +26,87 @@
   </header>
 
   <main class="page-shell">
-    <h1 class="page-title">Group Stage Standings</h1>
+    <h1 class="page-title">Tournament Standings</h1>
 
-    {% for code, rows in standings_by_group.items %}
-      <section aria-labelledby="group-{{ code }}">
-        <h2 class="section-title" id="group-{{ code }}">Group {{ code }}</h2>
-        {% if rows %}
-          <div class="standings-wrap" tabindex="0" aria-label="Group {{ code }} standings table">
-            <table class="standings-table">
-              <thead>
-                <tr>
-                  <th scope="col">Pos</th>
-                  <th scope="col">Team</th>
-                  <th scope="col"><abbr title="Played">P</abbr></th>
-                  <th scope="col"><abbr title="Wins">W</abbr></th>
-                  <th scope="col"><abbr title="Draws">D</abbr></th>
-                  <th scope="col"><abbr title="Losses">L</abbr></th>
-                  <th scope="col"><abbr title="Sets For">SF</abbr></th>
-                  <th scope="col"><abbr title="Sets Against">SA</abbr></th>
-                  <th scope="col"><abbr title="Set Difference">+/-</abbr></th>
-                  <th scope="col"><abbr title="Points">Pts</abbr></th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in rows %}
-                  <tr>
-                    <td class="position-cell">{% if row.position %}{{ row.position }}{% else %}&mdash;{% endif %}</td>
-                    <td>
-                      <span class="team-name">{{ row.team.name }}</span>
-                      {% if row.requires_manual_tiebreak %}
-                        <span class="manual-tiebreak">Manual tie-break required</span>
-                      {% endif %}
-                    </td>
-                    <td>{{ row.played }}</td>
-                    <td>{{ row.wins }}</td>
-                    <td>{{ row.draws }}</td>
-                    <td>{{ row.losses }}</td>
-                    <td>{{ row.sets_for }}</td>
-                    <td>{{ row.sets_against }}</td>
-                    <td>{{ row.set_difference }}</td>
-                    <td class="points-cell">{{ row.ranking_points }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+    <section class="standings-stage" aria-labelledby="group-stage-title">
+      <h2 class="stage-title" id="group-stage-title">Group Stage</h2>
+      {% for code, rows in standings_by_group.items %}
+        <section aria-labelledby="group-{{ code }}">
+          <h3 class="section-title" id="group-{{ code }}">Group {{ code }}</h3>
+          {% if rows %}
+            {% include "tournament/_standings_table.html" with table_label="Group "|add:code rows=rows only %}
+          {% else %}
+            <p class="empty-state">No teams assigned yet.</p>
+          {% endif %}
+        </section>
+      {% endfor %}
+    </section>
+
+    <section class="standings-stage" aria-labelledby="upper-bracket-title">
+      <h2 class="stage-title" id="upper-bracket-title">Upper Bracket — 1st to 4th Place</h2>
+      {% if upper_semifinals or upper_placement_matches %}
+        <div class="upper-bracket">
+          <div class="upper-round">
+            <h3>Semifinals</h3>
+            {% for match in upper_semifinals %}
+              <article class="upper-match-card{% if match.status == 'finished' %} is-finished{% endif %}">
+                <header class="upper-match-header">
+                  <span>{{ match.display_label }}</span>
+                  <strong>{{ match.match_code }}</strong>
+                </header>
+                <div class="bracket-participants">
+                  <strong>{{ match.home_participant }}</strong>
+                  {% if match.status == 'finished' %}
+                    <span class="bracket-score">{{ match.home_score }}&ndash;{{ match.away_score }}</span>
+                  {% else %}
+                    <span class="bracket-versus">vs</span>
+                  {% endif %}
+                  <strong>{{ match.away_participant }}</strong>
+                </div>
+                <span class="match-state {% if match.status == 'finished' %}state-finished{% else %}state-scheduled{% endif %}">{{ match.get_status_display }}</span>
+              </article>
+            {% empty %}
+              <p class="empty-state">Semifinal matches are not available yet.</p>
+            {% endfor %}
           </div>
-        {% else %}
-          <p class="empty-state">No teams assigned yet.</p>
-        {% endif %}
-      </section>
-    {% endfor %}
+
+          <div class="upper-round upper-placement-round">
+            <h3>Placement Matches</h3>
+            {% for match in upper_placement_matches %}
+              <article class="upper-match-card{% if match.status == 'finished' %} is-finished{% endif %}">
+                <header class="upper-match-header">
+                  <span>{{ match.display_label }}</span>
+                  <strong>{{ match.match_code }}</strong>
+                </header>
+                <div class="bracket-participants">
+                  <strong>{{ match.home_participant }}</strong>
+                  {% if match.status == 'finished' %}
+                    <span class="bracket-score">{{ match.home_score }}&ndash;{{ match.away_score }}</span>
+                  {% else %}
+                    <span class="bracket-versus">vs</span>
+                  {% endif %}
+                  <strong>{{ match.away_participant }}</strong>
+                </div>
+                <span class="match-state {% if match.status == 'finished' %}state-finished{% else %}state-scheduled{% endif %}">{{ match.get_status_display }}</span>
+              </article>
+            {% empty %}
+              <p class="empty-state">Placement matches are not available yet.</p>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <p class="empty-state">Upper bracket matches are not available yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="standings-stage" aria-labelledby="lower-league-title">
+      <h2 class="stage-title" id="lower-league-title">Lower League — 5th to 9th Place</h2>
+      {% if lower_standings.is_resolved %}
+        {% include "tournament/_standings_table.html" with table_label="Lower League" rows=lower_standings.rows only %}
+      {% else %}
+        <p class="empty-state">{{ lower_standings.unresolved_message }}</p>
+      {% endif %}
+    </section>
   </main>
 </body>
 </html>

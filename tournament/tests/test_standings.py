@@ -158,7 +158,13 @@ class GroupStageStandingsTests(TestCase):
             _tie_break_key(more_conceded, 1),
         )
 
-    def test_completely_unresolved_tie_requires_manual_tiebreak(self):
+    def test_zero_matches_played_does_not_require_manual_tiebreak(self):
+        rows = self.group_a_rows()
+
+        self.assertTrue(all(row.played == 0 for row in rows))
+        self.assertFalse(any(row.requires_manual_tiebreak for row in rows))
+
+    def test_partial_group_tie_does_not_require_manual_tiebreak(self):
         self.create_match(self.team_a, self.team_b, 1, 1)
 
         tied_rows = [
@@ -166,6 +172,17 @@ class GroupStageStandingsTests(TestCase):
         ]
 
         self.assertEqual(len(tied_rows), 2)
+        self.assertFalse(any(row.requires_manual_tiebreak for row in tied_rows))
+        self.assertTrue(all(row.position is None for row in tied_rows))
+
+    def test_completed_group_unresolved_tie_requires_manual_tiebreak(self):
+        self.create_match(self.team_a, self.team_b, 1, 1)
+        self.create_match(self.team_a, self.team_c, 1, 1)
+        self.create_match(self.team_b, self.team_c, 1, 1)
+
+        tied_rows = self.group_a_rows()
+
+        self.assertEqual(len(tied_rows), 3)
         self.assertTrue(all(row.requires_manual_tiebreak for row in tied_rows))
         self.assertTrue(all(row.position is None for row in tied_rows))
 
