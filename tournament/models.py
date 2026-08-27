@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -105,6 +106,29 @@ class Match(models.Model):
                 name='unique_nonempty_match_code',
             )
         ]
+
+    def validate_result(
+        self,
+        *,
+        status=None,
+        home_score=None,
+        away_score=None,
+    ):
+        status = self.status if status is None else status
+        home_score = self.home_score if home_score is None else home_score
+        away_score = self.away_score if away_score is None else away_score
+        if (
+            self.phase.startswith('upper_')
+            and status == self.Status.FINISHED
+            and home_score is not None
+            and away_score is not None
+            and home_score == away_score
+        ):
+            raise ValidationError('Upper knockout matches cannot finish in a draw.')
+
+    def clean(self):
+        super().clean()
+        self.validate_result()
 
     def __str__(self):
         home = self.home_team or self.home_slot or 'TBD'

@@ -131,3 +131,68 @@ class ResultsAdminTests(TestCase):
         upper_match.refresh_from_db()
 
         self.assertEqual(upper_match.home_team, teams[0])
+
+    def test_upper_semifinal_results_trigger_knockout_resolution(self):
+        self.client.force_login(self.user)
+        teams = [Team.objects.create(name=f'Team {index}') for index in range(1, 5)]
+        ub_01 = self.create_match(
+            day=2,
+            phase='upper_semifinal',
+            match_code='UB-01',
+            home_team=teams[0],
+            away_team=teams[1],
+        )
+        ub_02 = self.create_match(
+            day=2,
+            phase='upper_semifinal',
+            match_code='UB-02',
+            home_team=teams[2],
+            away_team=teams[3],
+        )
+        third_place = self.create_match(
+            day=2,
+            phase='upper_third_place',
+            match_code='UB-03',
+            home_slot='L-UB-01',
+            away_slot='L-UB-02',
+            referee_slot='',
+        )
+        final = self.create_match(
+            day=2,
+            phase='upper_final',
+            match_code='UB-04',
+            home_slot='W-UB-01',
+            away_slot='W-UB-02',
+            referee_slot='',
+        )
+
+        self.post_result(ub_01, 8, 5)
+        self.post_result(ub_02, 4, 7)
+        third_place.refresh_from_db()
+        final.refresh_from_db()
+
+        self.assertEqual(
+            (third_place.home_team, third_place.away_team),
+            (teams[1], teams[2]),
+        )
+        self.assertEqual((final.home_team, final.away_team), (teams[0], teams[3]))
+
+    def test_tied_upper_result_is_rejected(self):
+        self.client.force_login(self.user)
+        teams = [Team.objects.create(name=f'Team {index}') for index in range(1, 3)]
+        semifinal = self.create_match(
+            day=2,
+            phase='upper_semifinal',
+            match_code='UB-01',
+            home_team=teams[0],
+            away_team=teams[1],
+        )
+
+        response = self.post_result(semifinal, 5, 5)
+        semifinal.refresh_from_db()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Upper knockout matches cannot finish in a draw.')
+        self.assertEqual(semifinal.status, Match.Status.SCHEDULED)
+        self.assertIsNone(semifinal.home_score)
+        self.assertIsNone(semifinal.away_score)

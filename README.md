@@ -53,8 +53,9 @@ Local development uses `DEBUG=True`, local hosts, and a development-only secret 
 - `python manage.py seed_tournament`
 - `python manage.py resolve_slots`
 - `python manage.py resolve_progression_slots`
+- `python manage.py resolve_knockout_slots`
 
-The resolution commands are development and admin utilities. Normal Group Stage result entry automatically performs the required Upper and Lower slot resolution after a valid result is saved. `resolve_day2_slots` remains only as a deprecated alias of `resolve_progression_slots`; it does not run a separate progression system.
+The resolution commands are development and admin utilities. Normal result entry automatically resolves Upper/Lower standings slots after Group Stage results and winner/loser slots after Upper results. `resolve_day2_slots` remains only as a deprecated alias of `resolve_progression_slots`; it does not run a separate progression system.
 
 ## Tournament format note
 
