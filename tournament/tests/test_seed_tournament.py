@@ -8,7 +8,7 @@ from django.db.models import F
 from django.test import TestCase
 
 from tournament.models import Group, Match, ScheduleEvent, Team
-from tournament.services.day2_slots import resolve_day2_slots
+from tournament.services.progression_slots import resolve_progression_slots
 
 
 class ConfirmedTournamentSeedTests(TestCase):
@@ -161,14 +161,14 @@ class ConfirmedTournamentSeedTests(TestCase):
         self.assertEqual(Match.objects.filter(referee_slot='').count(), 30)
         self.assertEqual(Match.objects.filter(referee_team__isnull=True).count(), 30)
 
-    def test_legacy_day2_resolver_does_not_resolve_new_upper_slots(self):
-        result = resolve_day2_slots()
+    def test_unplayed_groups_leave_progression_slots_unresolved(self):
+        result = resolve_progression_slots()
         semifinal = Match.objects.get(match_code='UB-01')
 
         self.assertIsNone(semifinal.home_team)
         self.assertIsNone(semifinal.away_team)
-        self.assertIn('disabled', result.unresolved_slots['1A'])
-        self.assertIn('disabled', result.unresolved_slots['2B'])
+        self.assertIn('does not have enough assigned teams', result.unresolved_slots['1A'])
+        self.assertIn('does not have enough assigned teams', result.unresolved_slots['2B'])
 
     def test_repeated_non_destructive_seed_does_not_duplicate_or_erase_results(self):
         existing_match = Match.objects.get(match_code='UB-01')

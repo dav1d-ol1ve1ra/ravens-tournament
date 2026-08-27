@@ -9,7 +9,7 @@ from django.urls import reverse
 from .forms import MatchResultForm
 from .models import Match, Team
 from .presentation import COUNTRY_FLAGS, participant_name, team_initials
-from .services.day2_slots import resolve_day2_slots
+from .services.progression_slots import resolve_progression_slots
 from .services.standings import calculate_group_stage_standings
 
 
@@ -102,7 +102,8 @@ def results_admin(request):
                 match = submitted_form.save(commit=False)
                 match.status = Match.Status.FINISHED
                 match.save(update_fields=['home_score', 'away_score', 'status'])
-                resolve_day2_slots()
+                if match.phase == 'group_stage':
+                    resolve_progression_slots()
 
             messages.success(request, 'Result saved successfully.')
             query = {

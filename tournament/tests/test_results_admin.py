@@ -1,10 +1,11 @@
 from datetime import time
+from itertools import combinations
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from tournament.models import Match, Team
+from tournament.models import Group, Match, Team
 
 
 class ResultsAdminTests(TestCase):
@@ -90,45 +91,43 @@ class ResultsAdminTests(TestCase):
         self.assertIsNone(match.away_score)
         self.assertEqual(match.status, Match.Status.SCHEDULED)
 
-    def test_final_group_result_triggers_day2_slot_resolution(self):
+    def test_final_group_result_triggers_progression_slot_resolution(self):
         self.client.force_login(self.user)
+        group = Group.objects.create(name='Group A', code='A')
         teams = [
             Team.objects.create(name=f'Team A{position}', group_slot=f'A{position}')
-            for position in range(1, 4)
+            for position in range(1, 6)
         ]
-        self.create_match(
-            home_team=teams[0],
-            away_team=teams[1],
-            home_score=3,
-            away_score=0,
-            status=Match.Status.FINISHED,
-        )
-        self.create_match(
-            start_time=time(11, 0),
-            home_slot='A2',
-            away_slot='A3',
-            home_team=teams[1],
-            away_team=teams[2],
-            home_score=2,
-            away_score=0,
-            status=Match.Status.FINISHED,
-        )
+        pairings = list(combinations(teams, 2))
+        for home_team, away_team in pairings[:-1]:
+            self.create_match(
+                group=group,
+                home_slot=home_team.group_slot,
+                away_slot=away_team.group_slot,
+                home_team=home_team,
+                away_team=away_team,
+                home_score=3,
+                away_score=0,
+                status=Match.Status.FINISHED,
+            )
+
+        final_home, final_away = pairings[-1]
         final_group_match = self.create_match(
-            start_time=time(12, 0),
-            home_slot='A1',
-            away_slot='A3',
-            home_team=teams[0],
-            away_team=teams[2],
+            group=group,
+            home_slot=final_home.group_slot,
+            away_slot=final_away.group_slot,
+            home_team=final_home,
+            away_team=final_away,
         )
-        day2_match = self.create_match(
+        upper_match = self.create_match(
             day=2,
-            phase='final_1_3',
+            phase='upper_semifinal',
             home_slot='1A',
             away_slot='',
             referee_slot='',
         )
 
-        self.post_result(final_group_match, 1, 0)
-        day2_match.refresh_from_db()
+        self.post_result(final_group_match, 3, 0)
+        upper_match.refresh_from_db()
 
-        self.assertEqual(day2_match.home_team, teams[0])
+        self.assertEqual(upper_match.home_team, teams[0])

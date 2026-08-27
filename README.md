@@ -52,13 +52,13 @@ Local development uses `DEBUG=True`, local hosts, and a development-only secret 
 
 - `python manage.py seed_tournament`
 - `python manage.py resolve_slots`
-- `python manage.py resolve_day2_slots`
+- `python manage.py resolve_progression_slots`
 
-The resolution commands are development and admin utilities. Normal tournament result entry automatically performs the required Day 2 slot resolution after a valid result is saved.
+The resolution commands are development and admin utilities. Normal Group Stage result entry automatically performs the required Upper and Lower slot resolution after a valid result is saved. `resolve_day2_slots` remains only as a deprecated alias of `resolve_progression_slots`; it does not run a separate progression system.
 
 ## Tournament format note
 
-Group-stage standings support arbitrary group sizes and derive membership from each team's group slot, using configured `Group` records where available. The confirmed seed uses five teams in Group A and four teams in Group B. Automatic Upper/Lower progression and winner/loser resolution have not been implemented; the legacy 3×3 Day 2 resolver disables itself when the confirmed group structure is present.
+Group-stage standings support arbitrary group sizes and derive membership from each team's group slot, using configured `Group` records where available. The confirmed seed uses five teams in Group A and four teams in Group B. Completed groups automatically populate their standings-based Upper and Lower slots. Winner/loser resolution for later Upper matches has not been implemented.
 
 `ScheduleEvent` stores the complete seeded calendar with explicit, independently variable start and end times. Every seeded match links to its event, while ceremonies, lunches, and free periods exist only as events. Existing `Match.day`, `Match.start_time`, and `Match.court` values remain populated for current pages; there is intentionally no automatic synchronization between the two representations.
 
