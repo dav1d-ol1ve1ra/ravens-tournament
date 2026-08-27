@@ -65,7 +65,7 @@ def _linked_match(event):
         return None
 
 
-def _schedule_days(events):
+def _schedule_days(events, courts):
     days_by_number = {}
     for event in events:
         match = _linked_match(event)
@@ -77,10 +77,52 @@ def _schedule_days(events):
             event.away_participant = participant_name(match, 'away')
         days_by_number.setdefault(event.day, []).append(event)
 
-    return [
-        {'number': day, 'events': day_events}
-        for day, day_events in days_by_number.items()
-    ]
+    days = []
+    for day, day_events in days_by_number.items():
+        grouped_events = {}
+        for event in day_events:
+            if event.is_match:
+                continue
+            key = (
+                event.start_time,
+                event.end_time,
+                event.event_type,
+                event.label,
+            )
+            grouped_events.setdefault(key, []).append(event)
+
+        all_court_event_ids = {
+            event.id
+            for grouped in grouped_events.values()
+            if len(grouped) == len(courts)
+            and {event.court for event in grouped} == set(courts)
+            for event in grouped
+        }
+        displayed_event_ids = set()
+        displayed_events = []
+        for event in day_events:
+            if event.id in displayed_event_ids:
+                continue
+            if event.id in all_court_event_ids:
+                key = (
+                    event.start_time,
+                    event.end_time,
+                    event.event_type,
+                    event.label,
+                )
+                event.is_all_court_event = True
+                event.court_label = 'All Courts'
+                displayed_event_ids.update(
+                    grouped_event.id for grouped_event in grouped_events[key]
+                )
+            else:
+                event.is_all_court_event = False
+                event.court_label = event.court
+                displayed_event_ids.add(event.id)
+            displayed_events.append(event)
+        days.append({'number': day, 'events': displayed_events})
+
+    return days
 
 
 def _court_days(events, courts):
@@ -97,6 +139,28 @@ def _court_days(events, courts):
         )
         row['events_by_court'][event.court] = event
 
+    for rows in rows_by_day.values():
+        for row in rows.values():
+            row_events = list(row['events_by_court'].values())
+            if (
+                len(row_events) == len(courts)
+                and row_events
+                and all(
+                    event.event_type != ScheduleEvent.EventType.MATCH
+                    for event in row_events
+                )
+                and len(
+                    {
+                        (event.event_type, event.label)
+                        for event in row_events
+                    }
+                )
+                == 1
+            ):
+                row['all_court_event'] = row_events[0]
+            else:
+                row['all_court_event'] = None
+
     return [
         {
             'number': day,
@@ -104,6 +168,7 @@ def _court_days(events, courts):
                 {
                     'start_time': row['start_time'],
                     'end_time': row['end_time'],
+                    'all_court_event': row['all_court_event'],
                     'cells': [row['events_by_court'].get(court) for court in courts],
                 }
                 for _, row in sorted(rows.items())
@@ -160,6 +225,8 @@ def schedule(request):
             ('Finished', Match.Status.FINISHED),
         )
     ]
+    days = _schedule_days(events, courts)
+    court_days = _court_days(events, courts)
 
     return render(
         request,
@@ -172,9 +239,9 @@ def schedule(request):
             'courts_view_url': _schedule_url('courts', selected_day, selected_status),
             'day_filters': day_filters,
             'status_filters': status_filters,
-            'days': _schedule_days(events),
+            'days': days,
             'courts': courts,
-            'court_days': _court_days(events, courts),
+            'court_days': court_days,
         },
     )
 

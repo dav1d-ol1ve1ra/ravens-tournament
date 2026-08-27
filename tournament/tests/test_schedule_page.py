@@ -103,6 +103,23 @@ class SchedulePageTests(TestCase):
         self.assertContains(response, 'Closing Ceremony')
         self.assertContains(response, 'Free / Margin')
 
+    def test_identical_all_court_non_match_events_are_visually_grouped(self):
+        for court in ('Court 2', 'Court 3'):
+            ScheduleEvent.objects.create(
+                day=1,
+                start_time=time(9, 30),
+                end_time=time(10, 0),
+                court=court,
+                event_type=ScheduleEvent.EventType.OPENING_CEREMONY,
+                label='Opening Ceremony',
+            )
+
+        list_response = self.client.get(reverse('schedule'))
+        courts_response = self.client.get(f'{reverse("schedule")}?view=courts')
+
+        self.assertContains(list_response, 'All Courts', count=1)
+        self.assertContains(courts_response, 'colspan="3"')
+
     def test_match_event_shows_linked_match_and_symbolic_participants(self):
         response = self.client.get(reverse('schedule'))
 

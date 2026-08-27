@@ -37,7 +37,7 @@ class ConfirmedTournamentSeedTests(TestCase):
                 'London Saints',
                 'London Saints 2',
                 'Ruddled Raiders',
-                'To be determined',
+                'Wild Cards',
                 'Bouncy Badgers',
                 'Lord of the Wings',
             },

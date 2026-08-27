@@ -19,7 +19,7 @@ TEAMS = (
     ('London Saints', 'United Kingdom'),
     ('London Saints 2', 'United Kingdom'),
     ('Ruddled Raiders', 'United Kingdom'),
-    ('To be determined', 'Netherlands'),
+    ('Wild Cards', 'Netherlands'),
     ('Bouncy Badgers', 'Hungary'),
     ('Lord of the Wings', 'United Kingdom'),
 )

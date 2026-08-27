@@ -60,8 +60,7 @@
               <article class="schedule-event event-{{ event.event_type }}{% if event.linked_match and event.linked_match.status == 'finished' %} is-finished{% endif %}">
                 <div class="event-topline">
                   <span class="event-time">{{ event.start_time|time:"H:i" }}&ndash;{{ event.end_time|time:"H:i" }}</span>
-                  <span>{{ event.court }}</span>
-                  <span class="event-kind">{{ event.get_event_type_display }}</span>
+                  <span>{{ event.court_label }}</span>
                   {% if event.linked_match and event.linked_match.status == "finished" %}
                     <span class="match-state state-finished">Finished</span>
                   {% elif event.is_match %}
@@ -70,10 +69,6 @@
                 </div>
 
                 {% if event.is_match and event.linked_match %}
-                  <div class="event-match-meta">
-                    {% if event.linked_match.match_code %}<span>{{ event.linked_match.match_code }}</span>{% endif %}
-                    {% if event.linked_match.phase_label %}<span>{{ event.linked_match.phase_label }}</span>{% endif %}
-                  </div>
                   <div class="schedule-pair">
                     <span class="schedule-team">{{ event.home_participant }}</span>
                     {% if event.linked_match.status == "finished" %}
@@ -83,9 +78,12 @@
                     {% endif %}
                     <span class="schedule-team">{{ event.away_participant }}</span>
                   </div>
-                  {% if event.linked_match.referee_team or event.linked_match.referee_slot %}
-                    <div class="match-referee">Referee: {% if event.linked_match.referee_team %}{{ event.linked_match.referee_team.name }}{% else %}{{ event.linked_match.referee_slot }}{% endif %}</div>
-                  {% endif %}
+                  <div class="match-referee">Referee: {% if event.linked_match.referee_team %}{{ event.linked_match.referee_team.name }}{% elif event.linked_match.referee_slot %}{{ event.linked_match.referee_slot }}{% else %}&mdash;{% endif %}</div>
+                  <div class="event-match-meta">
+                    {% if event.linked_match.match_code %}<span>{{ event.linked_match.match_code }}</span>{% endif %}
+                    {% if event.linked_match.match_code and event.linked_match.phase_label %}<span aria-hidden="true">&middot;</span>{% endif %}
+                    {% if event.linked_match.phase_label %}<span>{{ event.linked_match.phase_label }}</span>{% endif %}
+                  </div>
                 {% elif event.is_match %}
                   <p class="event-label">{{ event.label }}</p>
                   <p class="event-note">Match details are not linked yet.</p>
@@ -116,24 +114,47 @@
                 {% for row in day.rows %}
                   <tr>
                     <th class="court-time" scope="row">{{ row.start_time|time:"H:i" }}&ndash;{{ row.end_time|time:"H:i" }}</th>
-                    {% for event in row.cells %}
-                      <td>
-                        {% if event %}
-                          <div class="court-event event-{{ event.event_type }}">
-                            <span class="event-kind">{{ event.get_event_type_display }}</span>
-                            {% if event.is_match and event.linked_match %}
-                              {% if event.linked_match.match_code %}<strong>{{ event.linked_match.match_code }}</strong>{% endif %}
-                              <span>{{ event.home_participant }} vs {{ event.away_participant }}</span>
-                              {% if event.linked_match.status == "finished" %}<strong>{{ event.linked_match.home_score }} - {{ event.linked_match.away_score }}</strong>{% endif %}
-                            {% else %}
-                              <strong>{{ event.label }}</strong>
-                            {% endif %}
-                          </div>
-                        {% else %}
-                          <span class="court-empty">&mdash;</span>
-                        {% endif %}
+                    {% if row.all_court_event %}
+                      <td class="court-all-event-cell" colspan="{{ courts|length }}">
+                        <div class="court-event event-{{ row.all_court_event.event_type }} court-all-event">
+                          <strong>{{ row.all_court_event.label }}</strong>
+                          <span>All Courts</span>
+                        </div>
                       </td>
-                    {% endfor %}
+                    {% else %}
+                      {% for event in row.cells %}
+                        <td>
+                          {% if event %}
+                            {% if event.is_match and event.linked_match %}
+                              <div class="court-match{% if event.linked_match.status == 'finished' %} is-finished{% endif %}">
+                                <div class="participants">
+                                  <strong>{{ event.home_participant }}</strong>
+                                  {% if event.linked_match.status == "finished" %}
+                                    <strong class="court-score">{{ event.linked_match.home_score }}&ndash;{{ event.linked_match.away_score }}</strong>
+                                  {% else %}
+                                    <span class="court-versus">vs</span>
+                                  {% endif %}
+                                  <strong>{{ event.away_participant }}</strong>
+                                </div>
+                                <div class="match-meta">
+                                  {% if event.linked_match.match_code %}<span>{{ event.linked_match.match_code }}</span>{% endif %}
+                                  {% if event.linked_match.match_code and event.linked_match.phase_label %}<span aria-hidden="true">&middot;</span>{% endif %}
+                                  {% if event.linked_match.phase_label %}<span>{{ event.linked_match.phase_label }}</span>{% endif %}
+                                </div>
+                                <div class="match-referee">Ref: {% if event.linked_match.referee_team %}{{ event.linked_match.referee_team.name }}{% elif event.linked_match.referee_slot %}{{ event.linked_match.referee_slot }}{% else %}&mdash;{% endif %}</div>
+                                {% if event.linked_match.status == "finished" %}<span class="match-state state-finished">Finished</span>{% endif %}
+                              </div>
+                            {% else %}
+                              <div class="court-event event-{{ event.event_type }}">
+                                <strong>{{ event.label }}</strong>
+                              </div>
+                            {% endif %}
+                          {% else %}
+                            <span class="court-empty">&mdash;</span>
+                          {% endif %}
+                        </td>
+                      {% endfor %}
+                    {% endif %}
                   </tr>
                 {% endfor %}
               </tbody>
