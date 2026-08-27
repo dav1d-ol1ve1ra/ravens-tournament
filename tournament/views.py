@@ -3,15 +3,28 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from .forms import MatchResultForm
-from .models import Match, Team
+from .models import Match, ScheduleEvent, Team
 from .presentation import COUNTRY_FLAGS, participant_name, team_initials
 from .services.knockout_slots import resolve_knockout_slots
 from .services.progression_slots import resolve_progression_slots
 from .services.standings import calculate_group_stage_standings
+
+
+SCHEDULE_PHASE_LABELS = {
+    'group_stage': 'Group Stage',
+    'final_1_3': '1st–3rd Place',
+    'final_4_6': '4th–6th Place',
+    'final_7_9': '7th–9th Place',
+    'upper_semifinal': 'Upper Semifinal',
+    'upper_third_place': 'Upper Third Place',
+    'upper_final': 'Upper Final',
+    'lower_round_robin': 'Lower Round Robin',
+}
 
 
 def home(request):
@@ -36,38 +49,134 @@ def teams(request):
     return render(request, 'tournament/teams.html', {'teams': teams})
 
 
-def schedule(request):
-    phase_labels = {
-        'group_stage': 'Group Stage',
-        'final_1_3': '1st–3rd Place',
-        'final_4_6': '4th–6th Place',
-        'final_7_9': '7th–9th Place',
-    }
-    phase_labels.update(
+def _schedule_url(view, day, status):
+    query = {'view': view}
+    if day:
+        query['day'] = day
+    if status:
+        query['status'] = status
+    return f'{reverse("schedule")}?{urlencode(query)}'
+
+
+def _linked_match(event):
+    try:
+        return event.match
+    except Match.DoesNotExist:
+        return None
+
+
+def _schedule_days(events):
+    days_by_number = {}
+    for event in events:
+        match = _linked_match(event)
+        event.linked_match = match
+        event.is_match = event.event_type == ScheduleEvent.EventType.MATCH
+        if match:
+            match.phase_label = SCHEDULE_PHASE_LABELS.get(match.phase, match.phase)
+            event.home_participant = participant_name(match, 'home')
+            event.away_participant = participant_name(match, 'away')
+        days_by_number.setdefault(event.day, []).append(event)
+
+    return [
+        {'number': day, 'events': day_events}
+        for day, day_events in days_by_number.items()
+    ]
+
+
+def _court_days(events, courts):
+    rows_by_day = {}
+    for event in events:
+        rows = rows_by_day.setdefault(event.day, {})
+        row = rows.setdefault(
+            (event.start_time, event.end_time),
+            {
+                'start_time': event.start_time,
+                'end_time': event.end_time,
+                'events_by_court': {},
+            },
+        )
+        row['events_by_court'][event.court] = event
+
+    return [
         {
-            'final_1_3': '1st\u20133rd Place',
-            'final_4_6': '4th\u20136th Place',
-            'final_7_9': '7th\u20139th Place',
-            'upper_semifinal': 'Upper Semifinal',
-            'upper_third_place': 'Upper Third Place',
-            'upper_final': 'Upper Final',
-            'lower_round_robin': 'Lower Round Robin',
+            'number': day,
+            'rows': [
+                {
+                    'start_time': row['start_time'],
+                    'end_time': row['end_time'],
+                    'cells': [row['events_by_court'].get(court) for court in courts],
+                }
+                for _, row in sorted(rows.items())
+            ],
         }
-    )
-    matches = Match.objects.select_related(
-        'home_team', 'away_team', 'referee_team'
+        for day, rows in rows_by_day.items()
+    ]
+
+
+def schedule(request):
+    selected_view = request.GET.get('view', 'list')
+    if selected_view not in {'list', 'courts'}:
+        selected_view = 'list'
+
+    selected_day = request.GET.get('day', '')
+    if selected_day not in {'1', '2'}:
+        selected_day = ''
+
+    selected_status = request.GET.get('status', '')
+    if selected_status not in {Match.Status.SCHEDULED, Match.Status.FINISHED}:
+        selected_status = ''
+
+    events = ScheduleEvent.objects.select_related(
+        'match',
+        'match__home_team',
+        'match__away_team',
+        'match__referee_team',
     ).order_by('day', 'start_time', 'court')
+    if selected_day:
+        events = events.filter(day=selected_day)
+    if selected_status:
+        events = events.filter(
+            ~Q(event_type=ScheduleEvent.EventType.MATCH)
+            | Q(match__status=selected_status)
+        )
+    events = list(events)
 
-    days = []
-    current_day = None
-    for match in matches:
-        match.phase_label = phase_labels.get(match.phase, match.phase)
-        if match.day != current_day:
-            current_day = match.day
-            days.append({'number': current_day, 'matches': []})
-        days[-1]['matches'].append(match)
+    courts_queryset = ScheduleEvent.objects.exclude(court='')
+    if selected_day:
+        courts_queryset = courts_queryset.filter(day=selected_day)
+    courts = list(
+        courts_queryset.order_by('court').values_list('court', flat=True).distinct()
+    )
 
-    return render(request, 'tournament/schedule.html', {'days': days})
+    day_filters = [
+        (label, value, _schedule_url(selected_view, value, selected_status))
+        for label, value in (('All', ''), ('Day 1', '1'), ('Day 2', '2'))
+    ]
+    status_filters = [
+        (label, value, _schedule_url(selected_view, selected_day, value))
+        for label, value in (
+            ('All', ''),
+            ('Scheduled', Match.Status.SCHEDULED),
+            ('Finished', Match.Status.FINISHED),
+        )
+    ]
+
+    return render(
+        request,
+        'tournament/schedule.html',
+        {
+            'selected_view': selected_view,
+            'selected_day': selected_day,
+            'selected_status': selected_status,
+            'list_view_url': _schedule_url('list', selected_day, selected_status),
+            'courts_view_url': _schedule_url('courts', selected_day, selected_status),
+            'day_filters': day_filters,
+            'status_filters': status_filters,
+            'days': _schedule_days(events),
+            'courts': courts,
+            'court_days': _court_days(events, courts),
+        },
+    )
 
 
 def standings(request):

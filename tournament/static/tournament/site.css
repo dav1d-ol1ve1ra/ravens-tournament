@@ -171,6 +171,51 @@ button, input, select { font: inherit; }
 .match-score.is-result { padding: 0.22rem 0.4rem; border-radius: 0.3rem; color: var(--ravens-navy); background: #fff1be; font-weight: 850; }
 .match-referee { color: var(--muted); font-size: 0.82rem; }
 
+.schedule-view-controls { display: flex; gap: 0.45rem; margin: 0 0 0.8rem; flex-wrap: wrap; }
+.schedule-filter-panel { margin-bottom: 1.15rem; }
+.schedule-filter-note { margin: 0; color: var(--muted); font-size: 0.82rem; }
+.schedule-event {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--ravens-gold);
+  border-radius: 0.55rem;
+  background: var(--card-bg);
+  box-shadow: 0 1px 2px rgb(7 26 51 / 6%);
+}
+.schedule-event.is-finished { border-left-color: #7e8b9b; background: #fbfcfd; }
+.event-topline, .event-match-meta { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 0.84rem; }
+.event-time { color: var(--ravens-navy); font-weight: 850; }
+.event-kind { display: inline-flex; width: fit-content; padding: 0.14rem 0.42rem; border-radius: 99px; color: var(--ravens-navy); background: #e8edf3; font-size: 0.7rem; font-weight: 850; letter-spacing: 0.03em; text-transform: uppercase; }
+.event-match-meta { color: var(--ravens-navy-light); font-size: 0.78rem; font-weight: 750; }
+.event-label { margin: 0; color: var(--ravens-navy); font-size: 1rem; font-weight: 850; }
+.event-note { margin: 0; color: var(--muted); font-size: 0.82rem; }
+.event-opening_ceremony { border-left-color: #51709a; background: #f5f8fc; }
+.event-opening_ceremony .event-kind, .event-closing_ceremony .event-kind { color: #183b68; background: #dce8f6; }
+.event-lunch { border-left-color: #c98f1c; background: #fffaf0; }
+.event-lunch .event-kind { color: #704b00; background: #fff0bd; }
+.event-closing_ceremony { border-left-color: #51709a; background: #f5f8fc; }
+.event-free { border-left-color: #8d99a8; background: #fafbfc; }
+.event-free .event-kind { color: #46576d; background: #e6ebf0; }
+
+.court-view-hint { margin: 0 0 0.65rem; color: var(--muted); font-size: 0.84rem; }
+.court-grid-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.65rem; background: var(--card-bg); box-shadow: 0 1px 2px rgb(7 26 51 / 6%); }
+.court-grid { width: 100%; min-width: 720px; border-collapse: collapse; }
+.court-grid th, .court-grid td { min-width: 180px; padding: 0.65rem; border-right: 1px solid #e1e7ee; border-bottom: 1px solid #e1e7ee; vertical-align: top; text-align: left; }
+.court-grid thead th { color: #40516a; background: #edf1f5; font-size: 0.76rem; font-weight: 850; letter-spacing: 0.03em; text-transform: uppercase; }
+.court-grid th:first-child, .court-grid td:first-child { min-width: 110px; }
+.court-grid tr:last-child th, .court-grid tr:last-child td { border-bottom: 0; }
+.court-grid th:last-child, .court-grid td:last-child { border-right: 0; }
+.court-time { position: sticky; left: 0; z-index: 1; color: var(--ravens-navy); background: #f8fafc; font-size: 0.82rem; font-weight: 850; white-space: nowrap; }
+.court-grid thead th:first-child { position: sticky; left: 0; z-index: 2; }
+.court-event { display: grid; gap: 0.3rem; min-height: 4rem; padding: 0.5rem; border-left: 3px solid var(--ravens-gold); border-radius: 0.35rem; background: #fffdf5; color: var(--ravens-navy); font-size: 0.84rem; font-weight: 750; overflow-wrap: anywhere; }
+.court-event.event-opening_ceremony, .court-event.event-closing_ceremony { border-left-color: #51709a; background: #f5f8fc; }
+.court-event.event-lunch { border-left-color: #c98f1c; background: #fffaf0; }
+.court-event.event-free { border-left-color: #8d99a8; background: #fafbfc; }
+.court-empty { color: #9aa8b8; }
+
 /* Standings */
 .standings-wrap {
   overflow-x: auto;

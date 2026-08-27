@@ -28,41 +28,122 @@
   <main class="page-shell">
     <h1 class="page-title">Schedule</h1>
 
-    {% for day in days %}
-      <section aria-labelledby="day-{{ day.number }}">
-        <h2 class="section-title" id="day-{{ day.number }}">Day {{ day.number }}</h2>
-        <div class="schedule-list">
-          {% for match in day.matches %}
-            <article class="schedule-match {% if match.status == 'finished' %}is-finished{% endif %}">
-              <div class="match-topline">
-                <span class="match-time">{{ match.start_time|time:"H:i" }}</span>
-                <span>{{ match.court }}</span>
-                {% if match.phase_label %}<span class="phase-label">{{ match.phase_label }}</span>{% endif %}
-                {% if match.status == "finished" %}
-                  <span class="match-state state-finished">Finished</span>
+    <nav class="schedule-view-controls" aria-label="Schedule view">
+      <a class="filter-button {% if selected_view == 'list' %}is-active{% endif %}" href="{{ list_view_url }}"{% if selected_view == 'list' %} aria-current="page"{% endif %}>List View</a>
+      <a class="filter-button {% if selected_view == 'courts' %}is-active{% endif %}" href="{{ courts_view_url }}"{% if selected_view == 'courts' %} aria-current="page"{% endif %}>Court View</a>
+    </nav>
+
+    <section class="filter-panel schedule-filter-panel" aria-label="Schedule filters">
+      <div class="filter-group">
+        <span class="filter-label">Day</span>
+        {% for label, value, url in day_filters %}
+          <a class="filter-button {% if selected_day == value %}is-active{% endif %}" href="{{ url }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Match status</span>
+        {% for label, value, url in status_filters %}
+          <a class="filter-button {% if selected_status == value %}is-active{% endif %}" href="{{ url }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+      {% if selected_status %}
+        <p class="schedule-filter-note">Ceremonies, lunch and free/margin events remain visible.</p>
+      {% endif %}
+    </section>
+
+    {% if selected_view == 'list' %}
+      {% for day in days %}
+        <section aria-labelledby="day-{{ day.number }}">
+          <h2 class="section-title" id="day-{{ day.number }}">Day {{ day.number }}</h2>
+          <div class="schedule-list">
+            {% for event in day.events %}
+              <article class="schedule-event event-{{ event.event_type }}{% if event.linked_match and event.linked_match.status == 'finished' %} is-finished{% endif %}">
+                <div class="event-topline">
+                  <span class="event-time">{{ event.start_time|time:"H:i" }}&ndash;{{ event.end_time|time:"H:i" }}</span>
+                  <span>{{ event.court }}</span>
+                  <span class="event-kind">{{ event.get_event_type_display }}</span>
+                  {% if event.linked_match and event.linked_match.status == "finished" %}
+                    <span class="match-state state-finished">Finished</span>
+                  {% elif event.is_match %}
+                    <span class="match-state state-scheduled">Scheduled</span>
+                  {% endif %}
+                </div>
+
+                {% if event.is_match and event.linked_match %}
+                  <div class="event-match-meta">
+                    {% if event.linked_match.match_code %}<span>{{ event.linked_match.match_code }}</span>{% endif %}
+                    {% if event.linked_match.phase_label %}<span>{{ event.linked_match.phase_label }}</span>{% endif %}
+                  </div>
+                  <div class="schedule-pair">
+                    <span class="schedule-team">{{ event.home_participant }}</span>
+                    {% if event.linked_match.status == "finished" %}
+                      <span class="match-score is-result">{{ event.linked_match.home_score }} - {{ event.linked_match.away_score }}</span>
+                    {% else %}
+                      <span class="match-score">vs</span>
+                    {% endif %}
+                    <span class="schedule-team">{{ event.away_participant }}</span>
+                  </div>
+                  {% if event.linked_match.referee_team or event.linked_match.referee_slot %}
+                    <div class="match-referee">Referee: {% if event.linked_match.referee_team %}{{ event.linked_match.referee_team.name }}{% else %}{{ event.linked_match.referee_slot }}{% endif %}</div>
+                  {% endif %}
+                {% elif event.is_match %}
+                  <p class="event-label">{{ event.label }}</p>
+                  <p class="event-note">Match details are not linked yet.</p>
                 {% else %}
-                  <span class="match-state state-scheduled">Scheduled</span>
+                  <p class="event-label">{{ event.label }}</p>
                 {% endif %}
-              </div>
-              <div class="schedule-pair">
-                <span class="schedule-team">{% if match.home_team %}{{ match.home_team.name }}{% else %}{{ match.home_slot }}{% endif %}</span>
-                {% if match.status == "finished" %}
-                  <span class="match-score is-result">{{ match.home_score }} - {{ match.away_score }}</span>
-                {% else %}
-                  <span class="match-score">vs</span>
-                {% endif %}
-                <span class="schedule-team">{% if match.away_team %}{{ match.away_team.name }}{% else %}{{ match.away_slot }}{% endif %}</span>
-              </div>
-              <div class="match-referee">
-                Referee: {% if match.referee_team %}{{ match.referee_team.name }}{% else %}{{ match.referee_slot }}{% endif %}
-              </div>
-            </article>
-          {% endfor %}
-        </div>
-      </section>
-    {% empty %}
-      <p class="empty-state">No matches are scheduled yet.</p>
-    {% endfor %}
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% empty %}
+        <p class="empty-state">No schedule events match these filters.</p>
+      {% endfor %}
+    {% else %}
+      <p class="court-view-hint">Scroll horizontally to view every court.</p>
+      {% for day in court_days %}
+        <section aria-labelledby="court-day-{{ day.number }}">
+          <h2 class="section-title" id="court-day-{{ day.number }}">Day {{ day.number }}</h2>
+          <div class="court-grid-wrap" tabindex="0" aria-label="Day {{ day.number }} court schedule">
+            <table class="court-grid">
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  {% for court in courts %}<th scope="col">{{ court }}</th>{% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in day.rows %}
+                  <tr>
+                    <th class="court-time" scope="row">{{ row.start_time|time:"H:i" }}&ndash;{{ row.end_time|time:"H:i" }}</th>
+                    {% for event in row.cells %}
+                      <td>
+                        {% if event %}
+                          <div class="court-event event-{{ event.event_type }}">
+                            <span class="event-kind">{{ event.get_event_type_display }}</span>
+                            {% if event.is_match and event.linked_match %}
+                              {% if event.linked_match.match_code %}<strong>{{ event.linked_match.match_code }}</strong>{% endif %}
+                              <span>{{ event.home_participant }} vs {{ event.away_participant }}</span>
+                              {% if event.linked_match.status == "finished" %}<strong>{{ event.linked_match.home_score }} - {{ event.linked_match.away_score }}</strong>{% endif %}
+                            {% else %}
+                              <strong>{{ event.label }}</strong>
+                            {% endif %}
+                          </div>
+                        {% else %}
+                          <span class="court-empty">&mdash;</span>
+                        {% endif %}
+                      </td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      {% empty %}
+        <p class="empty-state">No schedule events match these filters.</p>
+      {% endfor %}
+    {% endif %}
   </main>
 </body>
 </html>
