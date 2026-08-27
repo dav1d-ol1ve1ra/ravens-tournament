@@ -40,5 +40,20 @@ class MatchAdmin(admin.ModelAdmin):
         'home_team',
         'away_team',
         'referee_team',
+        'referee_assignment_source',
+        'referee_locked',
         'status',
     )
+    list_editable = ('referee_team', 'referee_locked')
+    list_filter = ('day', 'phase', 'status', 'referee_locked', 'court')
+    ordering = ('day', 'start_time', 'court')
+
+    @admin.display(description='Referee source')
+    def referee_assignment_source(self, obj):
+        if obj.referee_locked:
+            return 'Manual'
+        if obj.referee_slot:
+            return 'Symbolic slot'
+        if obj.referee_team_id:
+            return 'Automatic'
+        return 'Unassigned'

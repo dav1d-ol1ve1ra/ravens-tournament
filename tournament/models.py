@@ -96,6 +96,10 @@ class Match(models.Model):
         null=True,
         blank=True,
     )
+    referee_locked = models.BooleanField(
+        default=False,
+        help_text='Preserve this referee team when automatic assignments are recalculated.',
+    )
     status = models.CharField(max_length=9, choices=Status.choices, default=Status.SCHEDULED)
 
     class Meta:
