@@ -53,6 +53,14 @@ class PublicPageTests(TestCase):
         self.assertContains(response, 'Portugal')
         self.assertContains(response, 'RA')
 
+    def test_teams_page_shows_the_england_flag(self):
+        Team.objects.create(name='London Saints A', country='England')
+
+        response = self.client.get(reverse('teams'))
+
+        self.assertContains(response, 'England')
+        self.assertContains(response, '🏴')
+
     def test_teams_page_shows_an_uploaded_logo_when_available(self):
         team = Team.objects.create(
             name='Ravens A',
