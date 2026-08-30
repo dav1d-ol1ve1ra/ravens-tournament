@@ -22,8 +22,8 @@ SCHEDULE_PHASE_LABELS = {
     'final_4_6': '4th–6th Place',
     'final_7_9': '7th–9th Place',
     'upper_semifinal': 'Upper Semifinal',
-    'upper_third_place': 'Upper Third Place',
-    'upper_final': 'Upper Final',
+    'upper_third_place': '3rd Place Match',
+    'upper_final': 'Final',
     'lower_league': 'Lower League',
     'lower_round_robin': 'Lower Round Robin',
 }
@@ -58,10 +58,23 @@ def teams(request):
     return render(request, 'tournament/teams.html', {'teams': teams})
 
 
-def _schedule_url(view, day, status):
-    query = {'view': view}
+SCHEDULE_PHASE_FILTERS = {
+    'group_stage': ('group_stage',),
+    'lower_league': ('lower_league', 'lower_round_robin'),
+    'upper': ('upper_semifinal', 'upper_third_place', 'upper_final'),
+}
+
+
+def _schedule_url(view, day, phase, group, status):
+    query = {}
+    if view:
+        query['view'] = view
     if day:
         query['day'] = day
+    if phase:
+        query['phase'] = phase
+    if group:
+        query['group'] = group
     if status:
         query['status'] = status
     return f'{reverse("schedule")}?{urlencode(query)}'
@@ -80,6 +93,7 @@ def _schedule_days(events, courts):
         match = _linked_match(event)
         event.linked_match = match
         event.is_match = event.event_type == ScheduleEvent.EventType.MATCH
+        event.kind_label = event.get_event_type_display()
         if match:
             match.phase_label = SCHEDULE_PHASE_LABELS.get(match.phase, match.phase)
             event.home_participant = participant_name(match, 'home')
@@ -130,7 +144,13 @@ def _schedule_days(events, courts):
                 event.court_label = event.court
                 displayed_event_ids.add(event.id)
             displayed_events.append(event)
-        days.append({'number': day, 'events': displayed_events})
+        days.append(
+            {
+                'number': day,
+                'label': {1: 'Saturday', 2: 'Sunday'}.get(day, f'Day {day}'),
+                'events': displayed_events,
+            }
+        )
 
     return days
 
@@ -174,6 +194,7 @@ def _court_days(events, courts):
     return [
         {
             'number': day,
+            'label': {1: 'Saturday', 2: 'Sunday'}.get(day, f'Day {day}'),
             'rows': [
                 {
                     'start_time': row['start_time'],
@@ -197,6 +218,14 @@ def schedule(request):
     if selected_day not in {'1', '2'}:
         selected_day = ''
 
+    selected_phase = request.GET.get('phase', '')
+    if selected_phase not in SCHEDULE_PHASE_FILTERS:
+        selected_phase = ''
+
+    selected_group = request.GET.get('group', '')
+    if selected_group not in {'A', 'B'}:
+        selected_group = ''
+
     selected_status = request.GET.get('status', '')
     if selected_status not in {Match.Status.SCHEDULED, Match.Status.FINISHED}:
         selected_status = ''
@@ -209,6 +238,16 @@ def schedule(request):
     ).order_by('day', 'start_time', 'court')
     if selected_day:
         events = events.filter(day=selected_day)
+    if selected_phase:
+        events = events.filter(
+            ~Q(event_type=ScheduleEvent.EventType.MATCH)
+            | Q(match__phase__in=SCHEDULE_PHASE_FILTERS[selected_phase])
+        )
+    if selected_group:
+        events = events.filter(
+            ~Q(event_type=ScheduleEvent.EventType.MATCH)
+            | Q(match__group__code=selected_group)
+        )
     if selected_status:
         events = events.filter(
             ~Q(event_type=ScheduleEvent.EventType.MATCH)
@@ -224,11 +263,52 @@ def schedule(request):
     )
 
     day_filters = [
-        (label, value, _schedule_url(selected_view, value, selected_status))
-        for label, value in (('All', ''), ('Day 1', '1'), ('Day 2', '2'))
+        (
+            label,
+            value,
+            _schedule_url(
+                selected_view, value, selected_phase, selected_group, selected_status
+            ),
+        )
+        for label, value in (('All', ''), ('Saturday', '1'), ('Sunday', '2'))
+    ]
+    phase_filters = [
+        (
+            label,
+            value,
+            _schedule_url(
+                selected_view, selected_day, value, '', selected_status
+            ),
+        )
+        for label, value in (
+            ('All', ''),
+            ('Group Stage', 'group_stage'),
+            ('Lower League', 'lower_league'),
+            ('Upper Bracket', 'upper'),
+        )
+    ]
+    group_filters = [
+        (
+            label,
+            value,
+            _schedule_url(
+                selected_view,
+                selected_day,
+                'group_stage',
+                value,
+                selected_status,
+            ),
+        )
+        for label, value in (('All Groups', ''), ('Group A', 'A'), ('Group B', 'B'))
     ]
     status_filters = [
-        (label, value, _schedule_url(selected_view, selected_day, value))
+        (
+            label,
+            value,
+            _schedule_url(
+                selected_view, selected_day, selected_phase, selected_group, value
+            ),
+        )
         for label, value in (
             ('All', ''),
             ('Scheduled', Match.Status.SCHEDULED),
@@ -245,10 +325,18 @@ def schedule(request):
             'selected_view': selected_view,
             'selected_day': selected_day,
             'selected_status': selected_status,
-            'list_view_url': _schedule_url('list', selected_day, selected_status),
-            'courts_view_url': _schedule_url('courts', selected_day, selected_status),
+            'list_view_url': _schedule_url(
+                'list', selected_day, selected_phase, selected_group, selected_status
+            ),
+            'courts_view_url': _schedule_url(
+                'courts', selected_day, selected_phase, selected_group, selected_status
+            ),
             'day_filters': day_filters,
+            'phase_filters': phase_filters,
+            'group_filters': group_filters,
             'status_filters': status_filters,
+            'selected_phase': selected_phase,
+            'selected_group': selected_group,
             'days': days,
             'courts': courts,
             'court_days': court_days,
