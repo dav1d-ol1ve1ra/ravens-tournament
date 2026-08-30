@@ -1,5 +1,30 @@
-<p class="standings-scroll-hint">Swipe horizontally to see all stats</p>
-<div class="standings-wrap" tabindex="0" aria-label="{{ table_label }} standings table">
+<div class="standings-mobile" aria-label="{{ table_label }} standings">
+  {% for row in rows %}
+    <article class="standing-card">
+      <div class="standing-card-main">
+        <span class="standing-card-position">{% if row.position %}{{ row.position }}.{% else %}&mdash;{% endif %}</span>
+        <strong class="standing-card-team">{{ row.team.name }}</strong>
+        <strong class="standing-card-points">{{ row.ranking_points }} pts</strong>
+      </div>
+      <div class="standing-card-stats">
+        <span><abbr title="Played">P</abbr> {{ row.played }}</span>
+        <span><abbr title="Wins">W</abbr> {{ row.wins }}</span>
+        <span><abbr title="Draws">D</abbr> {{ row.draws }}</span>
+        <span><abbr title="Losses">L</abbr> {{ row.losses }}</span>
+      </div>
+      <div class="standing-card-stats standing-card-sets">
+        <span><abbr title="Sets For">SF</abbr> {{ row.sets_for }}</span>
+        <span><abbr title="Sets Against">SA</abbr> {{ row.sets_against }}</span>
+        <span><abbr title="Set Difference">+/-</abbr> {% if row.set_difference > 0 %}+{% endif %}{{ row.set_difference }}</span>
+      </div>
+      {% if row.requires_manual_tiebreak %}
+        <span class="manual-tiebreak">Manual tie-break required</span>
+      {% endif %}
+    </article>
+  {% endfor %}
+</div>
+
+<div class="standings-wrap standings-desktop" tabindex="0" aria-label="{{ table_label }} standings table">
   <table class="standings-table">
     <thead>
       <tr>
@@ -31,7 +56,7 @@
           <td>{{ row.losses }}</td>
           <td>{{ row.sets_for }}</td>
           <td>{{ row.sets_against }}</td>
-          <td>{{ row.set_difference }}</td>
+          <td>{% if row.set_difference > 0 %}+{% endif %}{{ row.set_difference }}</td>
           <td class="points-cell">{{ row.ranking_points }}</td>
         </tr>
       {% endfor %}

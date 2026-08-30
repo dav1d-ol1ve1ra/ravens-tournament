@@ -1,4 +1,5 @@
 from datetime import time
+from itertools import combinations
 
 from django.test import TestCase
 from django.urls import reverse
@@ -6,148 +7,142 @@ from django.urls import reverse
 from tournament.models import Group, Match, Team
 
 
+LOWER_SLOTS = ('3A', '4A', '5A', '3B', '4B')
+
+
 class StandingsPageTests(TestCase):
     def setUp(self):
-        Group.objects.create(name='Group A', code='A')
-        Group.objects.create(name='Group B', code='B')
+        self.group_a = Group.objects.create(name='Group A', code='A')
+        self.group_b = Group.objects.create(name='Group B', code='B')
         self.team_a = Team.objects.create(name='Ravens A', group_slot='A1')
         self.team_b = Team.objects.create(name='London Saints', group_slot='B1')
 
-    def create_upper_match(
-        self,
-        code,
-        home_slot,
-        away_slot,
-        *,
-        home_team=None,
-        away_team=None,
-        home_score=None,
-        away_score=None,
-        status=Match.Status.SCHEDULED,
-    ):
-        labels = {
-            'UB-01': 'upper_semifinal',
-            'UB-02': 'upper_semifinal',
-            'UB-03': 'upper_third_place',
-            'UB-04': 'upper_final',
+    def create_lower_league(self, *, all_draws=False):
+        teams = {
+            slot: Team.objects.create(
+                name=f'Lower Team {slot}',
+                group_slot=f'{slot[-1]}{slot[:-1]}',
+            )
+            for slot in LOWER_SLOTS
         }
-        return Match.objects.create(
-            day=2,
-            start_time=time(10),
-            court='Court 1',
-            match_code=code,
-            phase=labels[code],
-            home_slot=home_slot,
-            away_slot=away_slot,
-            home_team=home_team,
-            away_team=away_team,
-            home_score=home_score,
-            away_score=away_score,
-            status=status,
-        )
+        matches = []
+        for index, (home_slot, away_slot) in enumerate(
+            combinations(LOWER_SLOTS, 2), start=1
+        ):
+            match = Match.objects.create(
+                day=2,
+                start_time=time(8 + index),
+                court='Court 1',
+                match_code=f'LL-{index:02}',
+                phase='lower_league',
+                home_slot=home_slot,
+                away_slot=away_slot,
+                home_team=teams[home_slot],
+                away_team=teams[away_slot],
+            )
+            if all_draws:
+                match.home_score = 1
+                match.away_score = 1
+                match.status = Match.Status.FINISHED
+                match.save(update_fields=['home_score', 'away_score', 'status'])
+            matches.append(match)
+        return teams, matches
 
-    def create_upper_bracket(self):
-        self.create_upper_match('UB-01', '1A', '2B')
-        self.create_upper_match('UB-02', '1B', '2A')
-        self.create_upper_match('UB-03', 'L-UB-01', 'L-UB-02')
-        self.create_upper_match('UB-04', 'W-UB-01', 'W-UB-02')
+    def test_page_returns_200_and_exposes_only_groups_a_and_b(self):
+        Group.objects.create(name='Group C', code='C')
+        Team.objects.create(name='Old Group C Team', group_slot='C1')
 
-    def test_page_returns_200_and_shows_groups_a_and_b_without_group_c(self):
         response = self.client.get(reverse('standings'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Group A')
         self.assertContains(response, 'Group B')
         self.assertNotContains(response, 'Group C')
+        self.assertNotContains(response, 'Old Group C Team')
 
-    def test_upper_section_and_all_confirmed_match_codes_appear(self):
-        self.create_upper_bracket()
-
+    def test_page_uses_mobile_cards_and_desktop_tables_from_the_same_rows(self):
         response = self.client.get(reverse('standings'))
 
-        self.assertContains(response, 'Upper Bracket — 1st to 4th Place')
-        for code in ('UB-01', 'UB-02', 'UB-03', 'UB-04'):
-            self.assertContains(response, code)
+        self.assertContains(response, 'class="standings-mobile"')
+        self.assertContains(response, 'class="standings-table"')
+        self.assertContains(response, 'Ravens A', count=2)
 
-    def test_unresolved_upper_symbolic_slots_display(self):
-        self.create_upper_bracket()
-
-        response = self.client.get(reverse('standings'))
-
-        self.assertContains(response, '1st Group A')
-        self.assertContains(response, '2nd Group B')
-        self.assertContains(response, 'Winner UB-01')
-        self.assertContains(response, 'Loser UB-02')
-
-    def test_resolved_upper_team_names_display(self):
-        self.create_upper_match(
-            'UB-01',
-            '1A',
-            '2B',
-            home_team=self.team_a,
-            away_team=self.team_b,
+    def test_upper_bracket_is_not_rendered_as_standings(self):
+        Match.objects.create(
+            day=2,
+            start_time=time(10),
+            court='Court 1',
+            match_code='UB-01',
+            phase='upper_semifinal',
+            home_slot='1A',
+            away_slot='2B',
         )
 
         response = self.client.get(reverse('standings'))
 
-        self.assertContains(response, 'Ravens A')
-        self.assertContains(response, 'London Saints')
+        self.assertNotContains(response, 'Upper Bracket')
+        self.assertNotContains(response, 'UB-01')
 
-    def test_finished_upper_score_displays(self):
-        self.create_upper_match(
-            'UB-01',
-            '1A',
-            '2B',
-            home_team=self.team_a,
-            away_team=self.team_b,
-            home_score=5,
-            away_score=4,
+    def test_unresolved_lower_participants_show_waiting_message(self):
+        response = self.client.get(reverse('standings'))
+
+        self.assertContains(response, 'Lower League')
+        self.assertContains(
+            response,
+            'Lower League teams will be determined after the Group Stage.',
+        )
+
+    def test_resolved_lower_participants_appear(self):
+        teams, _ = self.create_lower_league()
+
+        response = self.client.get(reverse('standings'))
+
+        for team in teams.values():
+            self.assertContains(response, team.name)
+
+    def test_lower_result_affects_only_lower_standings_and_ordering(self):
+        teams, matches = self.create_lower_league()
+        first_match = matches[0]
+        first_match.home_score = 5
+        first_match.away_score = 2
+        first_match.status = Match.Status.FINISHED
+        first_match.save(update_fields=['home_score', 'away_score', 'status'])
+
+        response = self.client.get(reverse('standings'))
+        lower_rows = response.context['lower_standings'].rows
+        group_rows = response.context['standings_by_group']['A']
+        winner = next(row for row in lower_rows if row.team == teams['3A'])
+        group_winner = next(row for row in group_rows if row.team == teams['3A'])
+
+        self.assertEqual(lower_rows[0].team, teams['3A'])
+        self.assertEqual((winner.played, winner.wins, winner.ranking_points), (1, 1, 2))
+        self.assertEqual((group_winner.played, group_winner.ranking_points), (0, 0))
+
+    def test_group_stage_result_does_not_affect_lower_standings(self):
+        teams, _ = self.create_lower_league()
+        Match.objects.create(
+            day=1,
+            start_time=time(10),
+            court='Court 1',
+            phase='group_stage',
+            group=self.group_a,
+            home_slot='A3',
+            away_slot='A4',
+            home_team=teams['3A'],
+            away_team=teams['4A'],
+            home_score=9,
+            away_score=0,
             status=Match.Status.FINISHED,
         )
 
         response = self.client.get(reverse('standings'))
 
-        self.assertContains(response, '5&ndash;4')
-        self.assertContains(response, 'Finished')
-
-    def test_unresolved_lower_participants_show_safe_message(self):
-        response = self.client.get(reverse('standings'))
-
-        self.assertContains(response, 'Lower League — 5th to 9th Place')
-        self.assertContains(response, 'Lower League participants are not resolved yet')
-
-    def test_manual_lower_tiebreak_indicator_displays(self):
-        lower_teams = {
-            f'L{position}': Team.objects.create(name=f'Lower Team {position}')
-            for position in range(1, 6)
-        }
-        pairs = (
-            ('L1', 'L2'),
-            ('L3', 'L4'),
-            ('L1', 'L3'),
-            ('L2', 'L5'),
-            ('L1', 'L4'),
-            ('L1', 'L5'),
-            ('L3', 'L5'),
-            ('L2', 'L4'),
-            ('L2', 'L3'),
-            ('L4', 'L5'),
+        self.assertTrue(
+            all(row.played == 0 for row in response.context['lower_standings'].rows)
         )
-        for index, (home_slot, away_slot) in enumerate(pairs, start=1):
-            Match.objects.create(
-                day=2,
-                start_time=time(9 + index),
-                court='Court 1',
-                match_code=f'LL-{index:02}',
-                phase='lower_round_robin',
-                home_slot=home_slot,
-                away_slot=away_slot,
-                home_team=lower_teams[home_slot],
-                away_team=lower_teams[away_slot],
-                home_score=1,
-                away_score=1,
-                status=Match.Status.FINISHED,
-            )
+
+    def test_completed_lower_tie_shows_manual_tiebreak_warning(self):
+        self.create_lower_league(all_draws=True)
 
         response = self.client.get(reverse('standings'))
 

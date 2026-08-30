@@ -8,7 +8,7 @@ from tournament.services.standings import (
 )
 
 
-LOWER_PHASES = ('lower_league', 'lower_round_robin')
+LOWER_PHASE = 'lower_league'
 
 
 @dataclass
@@ -25,16 +25,13 @@ class LowerStandingsResult:
     def unresolved_message(self):
         if not self.unresolved_slots:
             return ''
-        return (
-            'Lower League participants are not resolved yet '
-            f'({", ".join(self.unresolved_slots)}).'
-        )
+        return 'Lower League teams will be determined after the Group Stage.'
 
 
 def calculate_lower_standings():
     """Calculate a Lower round robin from its resolved symbolic participants."""
     matches = list(
-        Match.objects.filter(phase__in=LOWER_PHASES)
+        Match.objects.filter(phase=LOWER_PHASE)
         .select_related('home_team', 'away_team')
         .order_by('day', 'start_time', 'court', 'pk')
     )

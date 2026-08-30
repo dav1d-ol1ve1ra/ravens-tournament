@@ -119,7 +119,23 @@ class LowerStandingsTests(TestCase):
         self.assertFalse(result.is_resolved)
         self.assertEqual(result.rows, [])
         self.assertIn('L5', result.unresolved_slots)
-        self.assertIn('not resolved yet', result.unresolved_message)
+        self.assertEqual(
+            result.unresolved_message,
+            'Lower League teams will be determined after the Group Stage.',
+        )
+
+    def test_legacy_lower_phase_is_not_counted(self):
+        Match.objects.filter(match_code='LL-01').update(
+            phase='lower_round_robin',
+            home_score=8,
+            away_score=1,
+            status=Match.Status.FINISHED,
+        )
+
+        result = calculate_lower_standings()
+        row = next(row for row in result.rows if row.team == self.teams_by_slot['L1'])
+
+        self.assertEqual((row.played, row.ranking_points), (0, 0))
 
     def test_incomplete_lower_tie_does_not_require_manual_tiebreak(self):
         self.finish('LL-01', 1, 1)

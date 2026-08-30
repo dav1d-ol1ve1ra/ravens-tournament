@@ -42,65 +42,8 @@
       {% endfor %}
     </section>
 
-    <section class="standings-stage" aria-labelledby="upper-bracket-title">
-      <h2 class="stage-title" id="upper-bracket-title">Upper Bracket — 1st to 4th Place</h2>
-      {% if upper_semifinals or upper_placement_matches %}
-        <div class="upper-bracket">
-          <div class="upper-round">
-            <h3>Semifinals</h3>
-            {% for match in upper_semifinals %}
-              <article class="upper-match-card{% if match.status == 'finished' %} is-finished{% endif %}">
-                <header class="upper-match-header">
-                  <span>{{ match.display_label }}</span>
-                  <strong>{{ match.match_code }}</strong>
-                </header>
-                <div class="bracket-participants">
-                  <strong>{{ match.home_participant }}</strong>
-                  {% if match.status == 'finished' %}
-                    <span class="bracket-score">{{ match.home_score }}&ndash;{{ match.away_score }}</span>
-                  {% else %}
-                    <span class="bracket-versus">vs</span>
-                  {% endif %}
-                  <strong>{{ match.away_participant }}</strong>
-                </div>
-                <span class="match-state {% if match.status == 'finished' %}state-finished{% else %}state-scheduled{% endif %}">{{ match.get_status_display }}</span>
-              </article>
-            {% empty %}
-              <p class="empty-state">Semifinal matches are not available yet.</p>
-            {% endfor %}
-          </div>
-
-          <div class="upper-round upper-placement-round">
-            <h3>Placement Matches</h3>
-            {% for match in upper_placement_matches %}
-              <article class="upper-match-card{% if match.status == 'finished' %} is-finished{% endif %}">
-                <header class="upper-match-header">
-                  <span>{{ match.display_label }}</span>
-                  <strong>{{ match.match_code }}</strong>
-                </header>
-                <div class="bracket-participants">
-                  <strong>{{ match.home_participant }}</strong>
-                  {% if match.status == 'finished' %}
-                    <span class="bracket-score">{{ match.home_score }}&ndash;{{ match.away_score }}</span>
-                  {% else %}
-                    <span class="bracket-versus">vs</span>
-                  {% endif %}
-                  <strong>{{ match.away_participant }}</strong>
-                </div>
-                <span class="match-state {% if match.status == 'finished' %}state-finished{% else %}state-scheduled{% endif %}">{{ match.get_status_display }}</span>
-              </article>
-            {% empty %}
-              <p class="empty-state">Placement matches are not available yet.</p>
-            {% endfor %}
-          </div>
-        </div>
-      {% else %}
-        <p class="empty-state">Upper bracket matches are not available yet.</p>
-      {% endif %}
-    </section>
-
     <section class="standings-stage" aria-labelledby="lower-league-title">
-      <h2 class="stage-title" id="lower-league-title">Lower League — 5th to 9th Place</h2>
+      <h2 class="stage-title" id="lower-league-title">Lower League</h2>
       {% if lower_standings.is_resolved %}
         {% include "tournament/_standings_table.html" with table_label="Lower League" rows=lower_standings.rows only %}
       {% else %}
