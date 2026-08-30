@@ -4,7 +4,7 @@ from tournament.slots import parse_ranking_slot
 COUNTRY_FLAGS = {
     'Portugal': '🇵🇹',
     'United Kingdom': '🇬🇧',
-    'England': '🏴',
+    'England': 'ENG',
     'Netherlands': '🇳🇱',
     'Hungary': '🇭🇺',
 }
