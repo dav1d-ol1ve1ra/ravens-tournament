@@ -1,0 +1,64 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upper Bracket | Ravens Tournament</title>
+  <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="brand" href="{% url 'home' %}">Ravens Tournament</a>
+      <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
+      <a class="nav-link" href="{% url 'standings' %}">Standings</a>
+      <a class="nav-link" href="{% url 'upper' %}" aria-current="page">Upper</a>
+      <a class="nav-link" href="{% url 'teams' %}">Teams</a>
+      {% if user.is_authenticated %}
+        <a class="nav-link" href="{% url 'results_admin' %}">Result Entry</a>
+        <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+        <form class="nav-logout-form" method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="nav-logout" type="submit">Log out</button>
+        </form>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <h1 class="page-title">Upper Bracket</h1>
+    <div class="upper-page">
+      {% for section in upper_sections %}
+        <section class="upper-section{% if section.is_final %} upper-section-final{% endif %}" aria-labelledby="upper-section-{{ forloop.counter }}">
+          <h2 class="section-title" id="upper-section-{{ forloop.counter }}">{{ section.title }}</h2>
+          <div class="upper-match-list">
+            {% for match in section.matches %}
+              <article class="upper-match-card{% if match.status == 'finished' %} is-finished{% endif %}{% if section.is_final %} is-final{% endif %}">
+                <header class="upper-match-header">
+                  <strong>{{ match.match_code }}</strong>
+                  <span class="match-state {% if match.status == 'finished' %}state-finished{% else %}state-scheduled{% endif %}">{{ match.get_status_display }}</span>
+                </header>
+                <p class="upper-phase-label">{{ match.phase_label }}</p>
+                <div class="bracket-participants">
+                  <strong>{{ match.home_participant }}</strong>
+                  {% if match.status == 'finished' %}
+                    <span class="bracket-score">{{ match.home_score }}&ndash;{{ match.away_score }}</span>
+                  {% else %}
+                    <span class="bracket-versus">vs</span>
+                  {% endif %}
+                  <strong>{{ match.away_participant }}</strong>
+                </div>
+                <p class="upper-match-details">Day {{ match.display_day }} &middot; {{ match.display_time|time:"H:i" }} &middot; {{ match.display_court }}</p>
+                <p class="upper-match-details">Referee: {% if match.referee_team or match.referee_slot %}{{ match.referee_participant }}{% else %}&mdash;{% endif %}</p>
+              </article>
+            {% empty %}
+              <p class="empty-state">Matches are not available yet.</p>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  </main>
+</body>
+</html>

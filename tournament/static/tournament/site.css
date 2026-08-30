@@ -285,6 +285,14 @@ button, input, select { font: inherit; }
 .bracket-score { min-width: 3.3rem; padding: 0.22rem 0.4rem; border-radius: 0.35rem; color: var(--ravens-navy); background: #fff0bd; font-size: 1.05rem; font-weight: 900; text-align: center; }
 .bracket-versus { min-width: 2rem; color: var(--muted); font-size: 0.78rem; font-weight: 850; text-align: center; text-transform: uppercase; }
 .upper-match-card .match-state { width: fit-content; margin-left: 0; }
+.upper-page { display: grid; gap: 1.35rem; }
+.upper-section { display: grid; gap: 0.1rem; }
+.upper-section .section-title { margin-top: 0; }
+.upper-match-list { display: grid; gap: 0.65rem; }
+.upper-phase-label, .upper-match-details { margin: 0; color: var(--muted); font-size: 0.8rem; }
+.upper-phase-label { color: var(--ravens-navy-light); font-size: 0.75rem; font-weight: 850; letter-spacing: 0.04em; text-transform: uppercase; }
+.upper-section-final .upper-match-card { border-left-width: 6px; border-color: var(--ravens-gold-dark); background: #fffdf5; }
+.upper-match-card.is-final .bracket-score { font-size: 1.18rem; }
 
 /* Result entry */
 .filter-panel {

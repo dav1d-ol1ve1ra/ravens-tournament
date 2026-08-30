@@ -28,6 +28,12 @@ SCHEDULE_PHASE_LABELS = {
     'lower_round_robin': 'Lower Round Robin',
 }
 
+UPPER_MATCH_SECTIONS = (
+    ('Semifinals', ('UB-01', 'UB-02')),
+    ('3rd Place', ('UB-03',)),
+    ('Final', ('UB-04',)),
+)
+
 def home(request):
     next_matches = list(
         Match.objects.filter(status=Match.Status.SCHEDULED)
@@ -350,6 +356,41 @@ def standings(request):
             'lower_standings': calculate_lower_standings(),
         },
     )
+
+
+def upper(request):
+    matches_by_code = {
+        match.match_code: match
+        for match in Match.objects.filter(
+            match_code__in=('UB-01', 'UB-02', 'UB-03', 'UB-04')
+        ).select_related(
+            'schedule_event',
+            'home_team',
+            'away_team',
+            'referee_team',
+        )
+    }
+    sections = []
+    for title, match_codes in UPPER_MATCH_SECTIONS:
+        matches = []
+        for match_code in match_codes:
+            match = matches_by_code.get(match_code)
+            if match is None:
+                continue
+            schedule_event = match.schedule_event
+            match.phase_label = SCHEDULE_PHASE_LABELS.get(match.phase, match.phase)
+            match.home_participant = participant_name(match, 'home')
+            match.away_participant = participant_name(match, 'away')
+            match.referee_participant = participant_name(match, 'referee')
+            match.display_day = schedule_event.day if schedule_event else match.day
+            match.display_time = (
+                schedule_event.start_time if schedule_event else match.start_time
+            )
+            match.display_court = schedule_event.court if schedule_event else match.court
+            matches.append(match)
+        sections.append({'title': title, 'matches': matches, 'is_final': title == 'Final'})
+
+    return render(request, 'tournament/upper.html', {'upper_sections': sections})
 
 
 def _result_filters(source):
