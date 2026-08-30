@@ -78,7 +78,7 @@
                     {% endif %}
                     <span class="schedule-team">{{ event.away_participant }}</span>
                   </div>
-                  <div class="match-referee">Referee: {% if event.linked_match.referee_team %}{{ event.linked_match.referee_team.name }}{% elif event.linked_match.referee_slot %}{{ event.linked_match.referee_slot }}{% else %}&mdash;{% endif %}</div>
+                  <div class="match-referee">Referee: {% if event.linked_match.referee_team or event.linked_match.referee_slot %}{{ event.referee_participant }}{% else %}&mdash;{% endif %}</div>
                   <div class="event-match-meta">
                     {% if event.linked_match.match_code %}<span>{{ event.linked_match.match_code }}</span>{% endif %}
                     {% if event.linked_match.match_code and event.linked_match.phase_label %}<span aria-hidden="true">&middot;</span>{% endif %}
@@ -141,7 +141,7 @@
                                   {% if event.linked_match.match_code and event.linked_match.phase_label %}<span aria-hidden="true">&middot;</span>{% endif %}
                                   {% if event.linked_match.phase_label %}<span>{{ event.linked_match.phase_label }}</span>{% endif %}
                                 </div>
-                                <div class="match-referee">Ref: {% if event.linked_match.referee_team %}{{ event.linked_match.referee_team.name }}{% elif event.linked_match.referee_slot %}{{ event.linked_match.referee_slot }}{% else %}&mdash;{% endif %}</div>
+                                <div class="match-referee">Ref: {% if event.linked_match.referee_team or event.linked_match.referee_slot %}{{ event.referee_participant }}{% else %}&mdash;{% endif %}</div>
                                 {% if event.linked_match.status == "finished" %}<span class="match-state state-finished">Finished</span>{% endif %}
                               </div>
                             {% else %}

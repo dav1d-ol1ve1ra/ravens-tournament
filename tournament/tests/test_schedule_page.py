@@ -137,6 +137,32 @@ class SchedulePageTests(TestCase):
 
         self.assertContains(response, 'Ravens A')
 
+    def test_ranking_and_outcome_slots_use_public_labels(self):
+        ranking_event = ScheduleEvent.objects.create(
+            day=2,
+            start_time=time(9, 0),
+            end_time=time(10, 5),
+            court='Court 2',
+            event_type=ScheduleEvent.EventType.MATCH,
+            label='Upper fixture',
+        )
+        Match.objects.create(
+            day=2,
+            start_time=time(9, 0),
+            court='Court 2',
+            schedule_event=ranking_event,
+            phase='upper_semifinal',
+            home_slot='1A',
+            away_slot='W-UB-01',
+            referee_slot='4B',
+        )
+
+        response = self.client.get(reverse('schedule'))
+
+        self.assertContains(response, '1st Group A')
+        self.assertContains(response, 'Winner UB-01')
+        self.assertContains(response, '4th Group B')
+
     def test_list_and_court_views_return_success(self):
         self.assertEqual(self.client.get(f'{reverse("schedule")}?view=list').status_code, 200)
         self.assertEqual(

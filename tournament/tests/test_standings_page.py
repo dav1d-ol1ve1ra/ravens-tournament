@@ -74,10 +74,10 @@ class StandingsPageTests(TestCase):
 
         response = self.client.get(reverse('standings'))
 
-        self.assertContains(response, '1A')
-        self.assertContains(response, '2B')
-        self.assertContains(response, 'W-UB-01')
-        self.assertContains(response, 'L-UB-02')
+        self.assertContains(response, '1st Group A')
+        self.assertContains(response, '2nd Group B')
+        self.assertContains(response, 'Winner UB-01')
+        self.assertContains(response, 'Loser UB-02')
 
     def test_resolved_upper_team_names_display(self):
         self.create_upper_match(

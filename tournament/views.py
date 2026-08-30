@@ -84,6 +84,7 @@ def _schedule_days(events, courts):
             match.phase_label = SCHEDULE_PHASE_LABELS.get(match.phase, match.phase)
             event.home_participant = participant_name(match, 'home')
             event.away_participant = participant_name(match, 'away')
+            event.referee_participant = participant_name(match, 'referee')
         days_by_number.setdefault(event.day, []).append(event)
 
     days = []

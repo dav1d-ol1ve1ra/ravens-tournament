@@ -4,6 +4,7 @@ from itertools import combinations
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.contrib.auth import get_user_model
 from django.db.models import F
 from django.test import TestCase
 
@@ -64,7 +65,7 @@ class ConfirmedTournamentSeedTests(TestCase):
 
     def test_seeds_upper_lower_and_total_match_counts(self):
         self.assertEqual(Match.objects.filter(phase__startswith='upper_').count(), 4)
-        self.assertEqual(Match.objects.filter(phase='lower_round_robin').count(), 10)
+        self.assertEqual(Match.objects.filter(phase='lower_league').count(), 10)
         self.assertEqual(Match.objects.count(), 30)
 
     def test_upper_matches_use_symbolic_progression_slots(self):
@@ -86,22 +87,32 @@ class ConfirmedTournamentSeedTests(TestCase):
     def test_lower_round_robin_contains_the_exact_matches(self):
         lower_matches = {
             match.match_code: (match.home_slot, match.away_slot)
-            for match in Match.objects.filter(phase='lower_round_robin')
+            for match in Match.objects.filter(phase='lower_league')
         }
 
         self.assertEqual(
             lower_matches,
             {
-                'LL-01': ('L1', 'L2'),
-                'LL-02': ('L3', 'L4'),
-                'LL-03': ('L1', 'L3'),
-                'LL-04': ('L2', 'L5'),
-                'LL-05': ('L1', 'L4'),
-                'LL-06': ('L3', 'L5'),
-                'LL-07': ('L1', 'L5'),
-                'LL-08': ('L2', 'L4'),
-                'LL-09': ('L2', 'L3'),
-                'LL-10': ('L4', 'L5'),
+                'LL-01': ('4A', '5A'),
+                'LL-02': ('3A', '3B'),
+                'LL-03': ('4A', '3A'),
+                'LL-04': ('5A', '4B'),
+                'LL-05': ('4A', '3B'),
+                'LL-06': ('3A', '4B'),
+                'LL-07': ('4A', '4B'),
+                'LL-08': ('5A', '3B'),
+                'LL-09': ('5A', '3A'),
+                'LL-10': ('3B', '4B'),
+            },
+        )
+        self.assertEqual(
+            {
+                frozenset(pair)
+                for pair in lower_matches.values()
+            },
+            {
+                frozenset(pair)
+                for pair in combinations(('3A', '4A', '5A', '3B', '4B'), 2)
             },
         )
 
@@ -111,9 +122,9 @@ class ConfirmedTournamentSeedTests(TestCase):
             (1, time(10, 0), time(11, 5), 'match'),
             (1, time(13, 15), time(14, 45), 'lunch'),
             (1, time(16, 55), time(18, 0), 'free'),
-            (2, time(9, 0), time(10, 0), 'match'),
-            (2, time(10, 0), time(11, 5), 'match'),
-            (2, time(12, 5), time(13, 35), 'lunch'),
+            (2, time(9, 0), time(10, 5), 'match'),
+            (2, time(10, 5), time(11, 10), 'match'),
+            (2, time(12, 10), time(13, 35), 'lunch'),
             (2, time(15, 40), time(16, 10), 'closing_ceremony'),
         )
 
@@ -157,9 +168,39 @@ class ConfirmedTournamentSeedTests(TestCase):
             Match.objects.exclude(court__in=('Court 1', 'Court 2', 'Court 3')).exists()
         )
 
-    def test_referee_assignments_are_empty(self):
-        self.assertEqual(Match.objects.filter(referee_slot='').count(), 30)
+    def test_referee_slots_are_seeded_but_teams_remain_unresolved(self):
+        self.assertEqual(Match.objects.filter(referee_slot='').count(), 0)
         self.assertEqual(Match.objects.filter(referee_team__isnull=True).count(), 30)
+
+    def test_upper_dependencies_reference_semifinal_outcomes(self):
+        third_place = Match.objects.get(match_code='UB-03')
+        final = Match.objects.get(match_code='UB-04')
+
+        self.assertEqual(third_place.home_source_match.match_code, 'UB-01')
+        self.assertEqual(third_place.home_source_outcome, Match.ParticipantOutcome.LOSER)
+        self.assertEqual(third_place.away_source_match.match_code, 'UB-02')
+        self.assertEqual(third_place.away_source_outcome, Match.ParticipantOutcome.LOSER)
+        self.assertEqual(final.home_source_match.match_code, 'UB-01')
+        self.assertEqual(final.home_source_outcome, Match.ParticipantOutcome.WINNER)
+        self.assertEqual(final.away_source_match.match_code, 'UB-02')
+        self.assertEqual(final.away_source_outcome, Match.ParticipantOutcome.WINNER)
+
+    def test_named_non_match_events_exist_on_the_expected_days(self):
+        self.assertEqual(
+            ScheduleEvent.objects.filter(label='Opening Ceremony', day=1).count(), 3
+        )
+        self.assertEqual(
+            ScheduleEvent.objects.filter(label='Lunch Break', day=1).count(), 3
+        )
+        self.assertEqual(
+            ScheduleEvent.objects.filter(label='Lunch Break', day=2).count(), 3
+        )
+        self.assertEqual(
+            ScheduleEvent.objects.filter(label='Closing Ceremony', day=2).count(), 3
+        )
+        self.assertEqual(
+            ScheduleEvent.objects.filter(label='Free / Buffer').count(), 3
+        )
 
     def test_unplayed_groups_leave_progression_slots_unresolved(self):
         result = resolve_progression_slots()
@@ -221,8 +262,21 @@ class TournamentSeedResetSafetyTests(TestCase):
         self.assertEqual(team.logo.name, 'team_logos/ravens-a.png')
         self.assertEqual(team.group_slot, '')
 
+    def test_reset_preserves_auth_users(self):
+        user_model = get_user_model()
+        user = user_model.objects.create_user('organiser', password='test-password')
+
+        call_command(
+            'seed_tournament',
+            reset_schedule=True,
+            stdout=StringIO(),
+            stderr=StringIO(),
+        )
+
+        self.assertTrue(user_model.objects.filter(pk=user.pk).exists())
+
     def test_normal_seed_refuses_to_mix_old_format(self):
         Group.objects.create(name='Group C', code='C')
 
-        with self.assertRaisesMessage(CommandError, '--reset-schedule'):
+        with self.assertRaisesMessage(CommandError, '--reset'):
             call_command('seed_tournament', stdout=StringIO(), stderr=StringIO())
