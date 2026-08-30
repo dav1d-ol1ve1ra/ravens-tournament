@@ -6,17 +6,13 @@ from tournament.services.standings import (
     calculate_group_stage_standings,
     calculate_round_robin_completion,
 )
-from tournament.slots import parse_direct_group_slot
+from tournament.slots import parse_direct_group_slot, parse_ranking_slot
 
 
-SLOT_DEFINITIONS = {
-    '1A': ('A', 1),
-    '2A': ('A', 2),
+LEGACY_LOWER_SLOT_DEFINITIONS = {
     'L1': ('A', 3),
     'L2': ('A', 4),
     'L3': ('A', 5),
-    '1B': ('B', 1),
-    '2B': ('B', 2),
     'L4': ('B', 3),
     'L5': ('B', 4),
 }
@@ -74,12 +70,32 @@ def _group_incomplete_reason(group, rows, group_stage_matches):
     return None
 
 
-def _calculate_slot_assignments():
+def _slot_definitions(standings, matches):
+    definitions = {
+        f'{position}{group_code}': (group_code, position)
+        for group_code, rows in standings.items()
+        for position in range(1, len(rows) + 1)
+    }
+    definitions.update(LEGACY_LOWER_SLOT_DEFINITIONS)
+    for match in matches:
+        for slot_field, _ in MATCH_SLOT_FIELDS:
+            slot = getattr(match, slot_field)
+            parsed = parse_ranking_slot(slot)
+            if parsed is not None:
+                definitions[slot] = parsed
+    return definitions
+
+
+def _calculate_slot_assignments(matches):
     standings = calculate_group_stage_standings()
+    slot_definitions = _slot_definitions(standings, matches)
+    required_group_codes = {
+        definition[0] for definition in slot_definitions.values()
+    }
     groups = {
         group.code: group
         for group in Group.objects.filter(
-            code__in={definition[0] for definition in SLOT_DEFINITIONS.values()}
+            code__in=required_group_codes
         ).order_by('pk')
     }
     group_stage_matches = list(
@@ -87,7 +103,7 @@ def _calculate_slot_assignments():
     )
     incomplete_reasons = {}
 
-    for group_code in {definition[0] for definition in SLOT_DEFINITIONS.values()}:
+    for group_code in required_group_codes:
         group = groups.get(group_code)
         if group is None:
             incomplete_reasons[group_code] = f'Group {group_code} does not exist'
@@ -100,7 +116,7 @@ def _calculate_slot_assignments():
 
     resolved_slots = {}
     unresolved_slots = {}
-    for slot, (group_code, position) in SLOT_DEFINITIONS.items():
+    for slot, (group_code, position) in slot_definitions.items():
         incomplete_reason = incomplete_reasons[group_code]
         if incomplete_reason:
             unresolved_slots[slot] = incomplete_reason
@@ -122,14 +138,16 @@ def _calculate_slot_assignments():
                 'check team slot assignments'
             )
 
-    return resolved_slots, unresolved_slots
+    return slot_definitions, resolved_slots, unresolved_slots
 
 
 @transaction.atomic
 def resolve_progression_slots():
     """Resolve confirmed-format ranking/Lower slots and clear stale assignments."""
-    resolved_slots, unresolved_slots = _calculate_slot_assignments()
     matches = list(Match.objects.all())
+    slot_definitions, resolved_slots, unresolved_slots = (
+        _calculate_slot_assignments(matches)
+    )
     fields_updated = 0
     matches_updated = 0
     stale_fields_cleared = 0
@@ -138,7 +156,7 @@ def resolve_progression_slots():
         changed_fields = []
         for slot_field, team_field in MATCH_SLOT_FIELDS:
             slot = getattr(match, slot_field)
-            if slot not in SLOT_DEFINITIONS:
+            if slot not in slot_definitions:
                 continue
 
             resolved_team = resolved_slots.get(slot)

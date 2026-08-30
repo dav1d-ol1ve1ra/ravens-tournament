@@ -24,6 +24,7 @@ SCHEDULE_PHASE_LABELS = {
     'upper_semifinal': 'Upper Semifinal',
     'upper_third_place': 'Upper Third Place',
     'upper_final': 'Upper Final',
+    'lower_league': 'Lower League',
     'lower_round_robin': 'Lower Round Robin',
 }
 

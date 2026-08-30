@@ -177,6 +177,30 @@ class ResultsAdminTests(TestCase):
         )
         self.assertEqual((final.home_team, final.away_team), (teams[0], teams[3]))
 
+    def test_result_entry_resolves_explicit_match_dependencies(self):
+        self.client.force_login(self.user)
+        teams = [Team.objects.create(name=f'Team {index}') for index in range(1, 3)]
+        semifinal = self.create_match(
+            day=2,
+            phase='upper_semifinal',
+            match_code='UB-01',
+            home_team=teams[0],
+            away_team=teams[1],
+        )
+        final = self.create_match(
+            day=2,
+            phase='upper_final',
+            match_code='UB-04',
+            referee_slot='',
+            home_source_match=semifinal,
+            home_source_outcome=Match.ParticipantOutcome.WINNER,
+        )
+
+        self.post_result(semifinal, 8, 5)
+        final.refresh_from_db()
+
+        self.assertEqual(final.home_team, teams[0])
+
     def test_tied_upper_result_is_rejected(self):
         self.client.force_login(self.user)
         teams = [Team.objects.create(name=f'Team {index}') for index in range(1, 3)]

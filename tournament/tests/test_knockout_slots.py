@@ -183,6 +183,63 @@ class KnockoutSlotResolutionTests(TestCase):
         self.assertEqual(third_place.home_team, self.team_a)
         self.assertEqual(final.away_team, self.team_b)
 
+    def test_explicit_dependencies_resolve_both_semifinal_outcomes(self):
+        ub_01 = self.create_finished_semifinal(
+            'UB-01', self.team_a, self.team_b, 8, 5
+        )
+        ub_02 = self.create_finished_semifinal(
+            'UB-02', self.team_c, self.team_d, 4, 7
+        )
+        third_place = self.create_match(
+            match_code='UB-03',
+            phase='upper_third_place',
+            home_source_match=ub_01,
+            home_source_outcome=Match.ParticipantOutcome.LOSER,
+            away_source_match=ub_02,
+            away_source_outcome=Match.ParticipantOutcome.LOSER,
+        )
+        final = self.create_match(
+            match_code='UB-04',
+            phase='upper_final',
+            home_source_match=ub_01,
+            home_source_outcome=Match.ParticipantOutcome.WINNER,
+            away_source_match=ub_02,
+            away_source_outcome=Match.ParticipantOutcome.WINNER,
+        )
+
+        resolve_knockout_slots()
+        third_place.refresh_from_db()
+        final.refresh_from_db()
+
+        self.assertEqual(
+            (third_place.home_team, third_place.away_team),
+            (self.team_b, self.team_c),
+        )
+        self.assertEqual(
+            (final.home_team, final.away_team),
+            (self.team_a, self.team_d),
+        )
+
+    def test_corrected_result_updates_explicit_dependency(self):
+        semifinal = self.create_finished_semifinal(
+            'UB-01', self.team_a, self.team_b, 8, 5
+        )
+        final = self.create_match(
+            match_code='UB-04',
+            phase='upper_final',
+            home_source_match=semifinal,
+            home_source_outcome=Match.ParticipantOutcome.WINNER,
+        )
+        resolve_knockout_slots()
+
+        semifinal.home_score = 5
+        semifinal.away_score = 8
+        semifinal.save(update_fields=['home_score', 'away_score'])
+        resolve_knockout_slots()
+        final.refresh_from_db()
+
+        self.assertEqual(final.home_team, self.team_b)
+
     def test_stale_assignments_are_cleared(self):
         semifinal = self.create_finished_semifinal(
             'UB-01', self.team_a, self.team_b, 8, 5
@@ -199,7 +256,7 @@ class KnockoutSlotResolutionTests(TestCase):
         self.assertEqual(result.stale_fields_cleared, 1)
 
     def test_group_stage_and_lower_round_robin_draws_remain_valid(self):
-        for phase in ('group_stage', 'lower_round_robin'):
+        for phase in ('group_stage', 'lower_league', 'lower_round_robin'):
             with self.subTest(phase=phase):
                 match = self.create_match(
                     phase=phase,

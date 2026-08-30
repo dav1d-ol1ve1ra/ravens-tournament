@@ -8,7 +8,7 @@ from tournament.services.standings import (
 )
 
 
-LOWER_SLOTS = ('L1', 'L2', 'L3', 'L4', 'L5')
+LOWER_PHASES = ('lower_league', 'lower_round_robin')
 
 
 @dataclass
@@ -32,12 +32,21 @@ class LowerStandingsResult:
 
 
 def calculate_lower_standings():
-    """Calculate the Lower round robin from resolved L1-L5 participants."""
+    """Calculate a Lower round robin from its resolved symbolic participants."""
     matches = list(
-        Match.objects.filter(phase='lower_round_robin')
+        Match.objects.filter(phase__in=LOWER_PHASES)
         .select_related('home_team', 'away_team')
         .order_by('day', 'start_time', 'court', 'pk')
     )
+    participant_slots = {
+        slot
+        for match in matches
+        for slot in (match.home_slot, match.away_slot)
+        if slot
+    }
+    if len(participant_slots) < 2:
+        return LowerStandingsResult(unresolved_slots=('participant slots',))
+
     teams_by_slot = {}
     inconsistent_slots = set()
 
@@ -45,7 +54,7 @@ def calculate_lower_standings():
         for side in ('home', 'away'):
             slot = getattr(match, f'{side}_slot')
             team = getattr(match, f'{side}_team')
-            if slot not in LOWER_SLOTS or team is None:
+            if slot not in participant_slots or team is None:
                 continue
             existing_team = teams_by_slot.get(slot)
             if existing_team is not None and existing_team.id != team.id:
@@ -54,15 +63,15 @@ def calculate_lower_standings():
                 teams_by_slot[slot] = team
 
     unresolved_slots = {
-        slot for slot in LOWER_SLOTS if slot not in teams_by_slot
+        slot for slot in participant_slots if slot not in teams_by_slot
     } | inconsistent_slots
     resolved_teams = [
         teams_by_slot[slot]
-        for slot in LOWER_SLOTS
+        for slot in sorted(participant_slots)
         if slot in teams_by_slot and slot not in inconsistent_slots
     ]
-    if len({team.id for team in resolved_teams}) != len(LOWER_SLOTS):
-        unresolved_slots.update(LOWER_SLOTS)
+    if len({team.id for team in resolved_teams}) != len(participant_slots):
+        unresolved_slots.update(participant_slots)
 
     if unresolved_slots:
         return LowerStandingsResult(
@@ -85,7 +94,7 @@ def calculate_lower_standings():
             (home_team, away_team, match.home_score, match.away_score)
         )
 
-    completion = calculate_round_robin_completion(LOWER_SLOTS, matches)
+    completion = calculate_round_robin_completion(participant_slots, matches)
     return LowerStandingsResult(
         rows=calculate_standings_rows(
             resolved_teams,

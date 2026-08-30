@@ -32,7 +32,7 @@ class LowerStandingsTests(TestCase):
                 start_time=time(9),
                 court='Court 1',
                 match_code=code,
-                phase='lower_round_robin',
+                phase='lower_league',
                 home_slot=home_slot,
                 away_slot=away_slot,
                 home_team=self.teams_by_slot[home_slot],
@@ -145,3 +145,54 @@ class LowerStandingsTests(TestCase):
         self.assertEqual(len(tied_rows), 5)
         self.assertTrue(all(row.requires_manual_tiebreak for row in tied_rows))
         self.assertTrue(all(row.position is None for row in tied_rows))
+
+
+class RankingSlotLowerStandingsTests(TestCase):
+    def test_lower_league_uses_resolved_ranking_slots_and_stays_isolated(self):
+        slots = ('3A', '4A', '5A', '3B', '4B')
+        teams = {
+            slot: Team.objects.create(name=f'Team {slot}')
+            for slot in slots
+        }
+        match_number = 1
+        for home_index, home_slot in enumerate(slots):
+            for away_slot in slots[home_index + 1:]:
+                Match.objects.create(
+                    day=2,
+                    start_time=time(10),
+                    court='Court 1',
+                    match_code=f'NEW-LL-{match_number:02}',
+                    phase='lower_league',
+                    home_slot=home_slot,
+                    away_slot=away_slot,
+                    home_team=teams[home_slot],
+                    away_team=teams[away_slot],
+                    home_score=3 if match_number == 1 else None,
+                    away_score=1 if match_number == 1 else None,
+                    status=(
+                        Match.Status.FINISHED
+                        if match_number == 1
+                        else Match.Status.SCHEDULED
+                    ),
+                )
+                match_number += 1
+        Match.objects.create(
+            day=1,
+            start_time=time(9),
+            court='Court 1',
+            phase='group_stage',
+            home_team=teams['3A'],
+            away_team=teams['4A'],
+            home_score=0,
+            away_score=20,
+            status=Match.Status.FINISHED,
+        )
+
+        rows = calculate_lower_standings().rows
+        winner = next(row for row in rows if row.team == teams['3A'])
+
+        self.assertEqual(len(rows), 5)
+        self.assertEqual(
+            (winner.played, winner.wins, winner.sets_for, winner.ranking_points),
+            (1, 1, 3, 2),
+        )

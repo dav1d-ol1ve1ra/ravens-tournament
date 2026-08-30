@@ -59,7 +59,9 @@ The resolution commands are development and admin utilities. Normal result entry
 
 ## Tournament format note
 
-Group-stage standings support arbitrary group sizes and derive membership from each team's group slot, using configured `Group` records where available. The confirmed seed uses five teams in Group A and four teams in Group B. Completed groups automatically populate their standings-based Upper and Lower slots. Winner/loser resolution for later Upper matches has not been implemented.
+Group-stage standings support arbitrary group sizes and derive membership from each team's generic group slot, such as `A1`, `A5`, or `B4`. Ranking slots use the inverse format, such as `1A` or `4B`, and resolve only after that group is complete with an unambiguous position. The same isolated standings engine can calculate Group Stage and Lower League round robins without mixing their results.
+
+Upper bracket participants may explicitly depend on the winner or loser of another Match; the existing symbolic `W-UB-01` and `L-UB-01` forms remain supported for compatibility. The current production seed and schedule have not been replaced by this backend refactor.
 
 `ScheduleEvent` stores the complete seeded calendar with explicit, independently variable start and end times. Every seeded match links to its event, while ceremonies, lunches, and free periods exist only as events. Existing `Match.day`, `Match.start_time`, and `Match.court` values remain populated for current pages; there is intentionally no automatic synchronization between the two representations.
 

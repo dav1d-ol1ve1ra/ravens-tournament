@@ -84,6 +84,16 @@ class ProgressionSlotResolutionTests(TestCase):
         result = resolve_progression_slots()
 
         self.assertEqual(
+            {slot: result.resolved_slots[slot] for slot in ('1A', '2A', '3A', '4A', '5A')},
+            {
+                '1A': teams_a[0],
+                '2A': teams_a[1],
+                '3A': teams_a[2],
+                '4A': teams_a[3],
+                '5A': teams_a[4],
+            },
+        )
+        self.assertEqual(
             {slot: result.resolved_slots[slot] for slot in ('1A', '2A', 'L1', 'L2', 'L3')},
             {
                 '1A': teams_a[0],
@@ -100,6 +110,15 @@ class ProgressionSlotResolutionTests(TestCase):
 
         result = resolve_progression_slots()
 
+        self.assertEqual(
+            {slot: result.resolved_slots[slot] for slot in ('1B', '2B', '3B', '4B')},
+            {
+                '1B': teams_b[0],
+                '2B': teams_b[1],
+                '3B': teams_b[2],
+                '4B': teams_b[3],
+            },
+        )
         self.assertEqual(
             {slot: result.resolved_slots[slot] for slot in ('1B', '2B', 'L4', 'L5')},
             {
@@ -167,6 +186,36 @@ class ProgressionSlotResolutionTests(TestCase):
             (second_lower.home_team, second_lower.away_team),
             (teams_a[4], teams_b[2]),
         )
+
+    def test_generic_ranking_slots_update_match_participants_and_referee(self):
+        group_a, teams_a = self.create_group('A', 5)
+        group_b, teams_b = self.create_group('B', 4)
+        self.create_round_robin(group_a, teams_a)
+        self.create_round_robin(group_b, teams_b)
+        lower_match = self.create_progression_match('3A', '4B', '5A', 'NEW-LL-01')
+
+        resolve_progression_slots()
+        lower_match.refresh_from_db()
+
+        self.assertEqual(
+            (
+                lower_match.home_team,
+                lower_match.away_team,
+                lower_match.referee_team,
+            ),
+            (teams_a[2], teams_b[3], teams_a[4]),
+        )
+
+    def test_requested_ranking_position_beyond_group_size_is_unresolved(self):
+        group_b, teams_b = self.create_group('B', 4)
+        self.create_round_robin(group_b, teams_b)
+        target = self.create_progression_match(home_slot='5B')
+
+        result = resolve_progression_slots()
+        target.refresh_from_db()
+
+        self.assertIsNone(target.home_team)
+        self.assertIn('unavailable', result.unresolved_slots['5B'])
 
     def test_changed_results_update_previous_assignments(self):
         group_a, teams_a = self.create_group('A', 5)

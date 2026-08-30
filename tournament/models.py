@@ -57,6 +57,10 @@ class Match(models.Model):
         SCHEDULED = 'scheduled', 'Scheduled'
         FINISHED = 'finished', 'Finished'
 
+    class ParticipantOutcome(models.TextChoices):
+        WINNER = 'winner', 'Winner'
+        LOSER = 'loser', 'Loser'
+
     day = models.PositiveSmallIntegerField()
     start_time = models.TimeField()
     court = models.CharField(max_length=100)
@@ -79,11 +83,35 @@ class Match(models.Model):
         null=True,
         blank=True,
     )
+    home_source_match = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        related_name='home_dependents',
+        null=True,
+        blank=True,
+    )
+    home_source_outcome = models.CharField(
+        max_length=6,
+        choices=ParticipantOutcome.choices,
+        blank=True,
+    )
     away_team = models.ForeignKey(
         Team,
         on_delete=models.SET_NULL,
         related_name='away_matches',
         null=True,
+        blank=True,
+    )
+    away_source_match = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        related_name='away_dependents',
+        null=True,
+        blank=True,
+    )
+    away_source_outcome = models.CharField(
+        max_length=6,
+        choices=ParticipantOutcome.choices,
         blank=True,
     )
     home_score = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -133,6 +161,20 @@ class Match(models.Model):
     def clean(self):
         super().clean()
         self.validate_result()
+        errors = {}
+        for side in ('home', 'away'):
+            source_id = getattr(self, f'{side}_source_match_id')
+            outcome = getattr(self, f'{side}_source_outcome')
+            if bool(source_id) != bool(outcome):
+                errors[f'{side}_source_outcome'] = (
+                    'A source match and winner/loser outcome must be set together.'
+                )
+            elif self.pk and source_id == self.pk:
+                errors[f'{side}_source_match'] = (
+                    'A match cannot depend on its own result.'
+                )
+        if errors:
+            raise ValidationError(errors)
 
     def __str__(self):
         home = self.home_team or self.home_slot or 'TBD'

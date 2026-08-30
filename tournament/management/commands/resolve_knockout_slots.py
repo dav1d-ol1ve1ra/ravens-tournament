@@ -4,7 +4,7 @@ from tournament.services.knockout_slots import resolve_knockout_slots
 
 
 class Command(BaseCommand):
-    help = 'Resolves winner/loser symbolic slots from finished knockout matches.'
+    help = 'Resolves winner/loser participant dependencies from finished matches.'
 
     def handle(self, *args, **options):
         result = resolve_knockout_slots()
