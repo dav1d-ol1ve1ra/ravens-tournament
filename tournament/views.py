@@ -12,6 +12,7 @@ from django.urls import reverse
 from .forms import (
     GROUP_ASSIGNMENT_SLOTS,
     GroupAssignmentForm,
+    ManualTiebreakOrderForm,
     MatchResultForm,
     ResetResultsForm,
 )
@@ -26,6 +27,10 @@ from .presentation import (
 from .services.final_ranking import calculate_final_ranking
 from .services.knockout_slots import resolve_knockout_slots
 from .services.lower_standings import calculate_lower_standings
+from .services.manual_tiebreaks import (
+    get_manual_tiebreak_requirements,
+    save_manual_team_order,
+)
 from .services.progression_slots import resolve_progression_slots
 from .services.result_reset import reset_tournament_results
 from .services.standings import calculate_group_stage_standings
@@ -510,6 +515,95 @@ def reset_results(request):
         request,
         'tournament/reset_results.html',
         {'form': form},
+    )
+
+
+def _manual_tiebreak_form_cards(requirements, submitted=None, data=None):
+    cards = []
+    for requirement in requirements:
+        is_submitted = submitted == (requirement.scope, requirement.signature)
+        form = ManualTiebreakOrderForm(
+            requirement,
+            data if is_submitted else None,
+        )
+        cards.append(
+            {
+                'requirement': requirement,
+                'form': form,
+                'order_fields': [
+                    form[f'order_{position}']
+                    for position in range(1, len(requirement.teams) + 1)
+                ],
+            }
+        )
+    return cards
+
+
+@login_required
+def manual_tiebreaks(request):
+    requirements = get_manual_tiebreak_requirements()
+    submitted = None
+    if request.method == 'POST':
+        submitted = (
+            request.POST.get('scope', ''),
+            request.POST.get('team_set_signature', ''),
+        )
+        requirement = next(
+            (
+                item
+                for item in requirements
+                if (item.scope, item.signature) == submitted
+            ),
+            None,
+        )
+        if requirement is None:
+            messages.error(
+                request,
+                'The unresolved tied-team set has changed. '
+                'Refresh and review the current standings.',
+            )
+        else:
+            form = ManualTiebreakOrderForm(requirement, request.POST)
+            if form.is_valid():
+                with transaction.atomic():
+                    current_requirement = next(
+                        (
+                            item
+                            for item in get_manual_tiebreak_requirements()
+                            if (item.scope, item.signature) == submitted
+                        ),
+                        None,
+                    )
+                    if current_requirement is None:
+                        messages.error(
+                            request,
+                            'The unresolved tied-team set has changed. '
+                            'Refresh and review the current standings.',
+                        )
+                    else:
+                        save_manual_team_order(
+                            requirement.scope,
+                            (team.pk for team in requirement.teams),
+                            form.ordered_team_ids(),
+                        )
+                        if requirement.scope.startswith('group:'):
+                            resolve_progression_slots()
+                        messages.success(
+                            request,
+                            f'{requirement.competition_label} manual tie-break saved. '
+                            'Standings and progression have been updated.',
+                        )
+                        return redirect('manual_tiebreaks')
+
+    cards = _manual_tiebreak_form_cards(
+        requirements,
+        submitted=submitted,
+        data=request.POST if request.method == 'POST' else None,
+    )
+    return render(
+        request,
+        'tournament/manual_tiebreaks.html',
+        {'tiebreak_cards': cards},
     )
 
 

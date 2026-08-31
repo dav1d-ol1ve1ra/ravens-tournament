@@ -1,0 +1,69 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manual Tie-breaks | Ravens Tournament</title>
+  <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="brand" href="{% url 'home' %}">Ravens Tournament</a>
+      <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
+      <a class="nav-link" href="{% url 'standings' %}">Standings</a>
+      <a class="nav-link" href="{% url 'upper' %}">Upper</a>
+      <a class="nav-link" href="{% url 'final_ranking' %}">Final Ranking</a>
+      <a class="nav-link" href="{% url 'teams' %}">Teams</a>
+      <a class="nav-link" href="{% url 'results_admin' %}">Result Entry</a>
+      <a class="nav-link" href="{% url 'group_assignment' %}">Groups</a>
+      <a class="nav-link" href="{% url 'manual_tiebreaks' %}" aria-current="page">Tie-breaks</a>
+      <a class="nav-link nav-link-subtle" href="{% url 'reset_results' %}">Reset</a>
+      <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+      <form class="nav-logout-form" method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="nav-logout" type="submit">Log out</button>
+      </form>
+    </nav>
+  </header>
+
+  <main class="page-shell manual-tiebreak-page">
+    <h1 class="page-title">Manual Tie-breaks</h1>
+    <p class="manual-tiebreak-intro">Record the final order only after organisers have resolved a required tie externally.</p>
+
+    {% if messages %}
+      {% for message in messages %}<p class="message {{ message.tags }}">{{ message }}</p>{% endfor %}
+    {% endif %}
+
+    {% for card in tiebreak_cards %}
+      <section class="manual-tiebreak-card" aria-labelledby="tie-{{ forloop.counter }}">
+        <p class="manual-tiebreak-alert">Manual tie-break required</p>
+        <h2 id="tie-{{ forloop.counter }}">{{ card.requirement.competition_label }}</h2>
+        <p class="manual-tiebreak-label">Tied teams</p>
+        <ul class="manual-tied-teams">
+          {% for team in card.requirement.teams %}<li>{{ team.name }}</li>{% endfor %}
+        </ul>
+        <form method="post">
+          {% csrf_token %}
+          {{ card.form.scope }}
+          {{ card.form.team_set_signature }}
+          {% if card.form.non_field_errors %}<div class="form-errors">{{ card.form.non_field_errors }}</div>{% endif %}
+          <div class="manual-order-fields">
+            {% for field in card.order_fields %}
+              <div class="manual-order-field">
+                {{ field.label_tag }}
+                {{ field }}
+                {% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+          <button class="primary-button manual-tiebreak-save" type="submit">Save Tie-break</button>
+        </form>
+      </section>
+    {% empty %}
+      <p class="empty-state">No manual tie-breaks are currently required.</p>
+    {% endfor %}
+  </main>
+</body>
+</html>

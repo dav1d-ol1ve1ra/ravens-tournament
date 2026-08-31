@@ -30,6 +30,24 @@ class Group(models.Model):
         return self.name
 
 
+class ManualTiebreakResolution(models.Model):
+    scope = models.CharField(max_length=30)
+    team_set_signature = models.CharField(max_length=255)
+    team_order = models.JSONField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['scope', 'team_set_signature'],
+                name='unique_manual_tiebreak_team_set_per_scope',
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.scope}: {self.team_set_signature}'
+
+
 class ScheduleEvent(models.Model):
     class EventType(models.TextChoices):
         MATCH = 'match', 'Match'

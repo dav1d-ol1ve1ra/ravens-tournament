@@ -82,6 +82,18 @@ Saving a valid result marks the match Finished, updates standings, resolves grou
 
 **No manual slot-resolution management command is required during normal tournament operation.**
 
+## Manual tie-breaks
+
+If **Manual tie-break required** appears:
+
+1. Resolve the tie externally according to tournament rules.
+2. Open `/manual-tiebreaks/` while logged in.
+3. Enter every tied team once in the agreed final order.
+4. Save the tie-break.
+5. Verify the updated standings and progression.
+
+Manual ordering is used only when a completed competition cannot be separated by the automatic criteria. Group ranking slots, Lower participants, and Upper semifinal participants update automatically after a Group Stage tie-break. A saved resolution is ignored if corrected results change or remove its exact tied-team set.
+
 ## Public pages
 
 - `/` — tournament overview and next matches.
@@ -94,6 +106,7 @@ Saving a valid result marks the match Finished, updates standings, resolves grou
 
 - `/results-admin/` — fast mobile result entry during the tournament.
 - `/group-assignment/` — assign teams to Group A and Group B slots before results begin.
+- `/manual-tiebreaks/` — record the final organiser-approved order for an unresolved tie.
 - `/admin/` — Django administration for authorised organisers.
 
 ## Production safety
@@ -125,6 +138,7 @@ During the tournament:
 
 - Enter results through Result Entry.
 - Check standings periodically.
+- Resolve any indicated manual ties through the Tie-breaks page.
 - Do not use the terminal for normal progression.
 
 Before Day 2:
@@ -169,6 +183,6 @@ Type the exact confirmation `RESET` when prompted. For intentional non-interacti
 python manage.py reset_results --yes
 ```
 
-The web page and command use the same reset service. It creates a database backup first, clears Match scores, returns Matches to Scheduled, restores direct Group Stage assignments, and clears derived Lower/Upper participants. It preserves teams, team metadata and logos, group assignments, Groups, Matches, ScheduleEvents, match slots/dependencies, and users.
+The web page and command use the same reset service. It creates a database backup first, clears Match scores and saved manual tie-break resolutions, returns Matches to Scheduled, restores direct Group Stage assignments, and clears derived Lower/Upper participants. It preserves teams, team metadata and logos, group assignments, Groups, Matches, ScheduleEvents, match slots/dependencies, and users.
 
 This is different from `python manage.py seed_tournament --reset`, which rebuilds development tournament structure. Do not use either reset command casually in production.

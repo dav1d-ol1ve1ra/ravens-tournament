@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from django.db import transaction
 
-from tournament.models import Match
+from tournament.models import ManualTiebreakResolution, Match
 from tournament.services.database_backup import DatabaseBackup, create_database_backup
 from tournament.services.knockout_slots import resolve_knockout_slots
 from tournament.services.progression_slots import resolve_progression_slots
@@ -29,6 +29,7 @@ def reset_tournament_results():
             away_score=None,
             status=Match.Status.SCHEDULED,
         )
+        ManualTiebreakResolution.objects.all().delete()
         progression_result = resolve_progression_slots()
         knockout_result = resolve_knockout_slots()
         direct_fields, direct_matches = resolve_group_stage_slots()

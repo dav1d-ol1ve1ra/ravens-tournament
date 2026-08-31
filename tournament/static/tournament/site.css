@@ -326,6 +326,22 @@ button, input, select { font: inherit; }
 .final-ranking-card.placement-3 { border-color: #b77a45; border-left-width: 6px; background: #fff9f4; }
 .final-ranking-card.placement-3 .final-position { color: #79451f; }
 
+/* Manual tie-breaks */
+.manual-tiebreak-page { max-width: 760px; }
+.manual-tiebreak-intro { margin: -0.55rem 0 1rem; color: var(--muted); }
+.manual-tiebreak-card { display: grid; gap: 0.65rem; margin-bottom: 0.8rem; padding: 0.85rem; border: 1px solid var(--border); border-left: 5px solid var(--ravens-gold); border-radius: 0.65rem; background: var(--card-bg); box-shadow: 0 2px 5px rgb(7 26 51 / 7%); }
+.manual-tiebreak-card h2, .manual-tiebreak-card p { margin: 0; }
+.manual-tiebreak-alert { width: fit-content; padding: 0.16rem 0.45rem; border-radius: 99px; color: #694900; background: #fff0bd; font-size: 0.72rem; font-weight: 850; letter-spacing: 0.04em; text-transform: uppercase; }
+.manual-tiebreak-label { color: var(--muted); font-size: 0.8rem; font-weight: 750; text-transform: uppercase; }
+.manual-tied-teams { display: grid; gap: 0.2rem; margin: 0; padding-left: 1.25rem; color: var(--ravens-navy); font-weight: 750; }
+.manual-order-fields { display: grid; gap: 0.55rem; margin: 0.7rem 0; }
+.manual-order-field { display: grid; gap: 0.25rem; }
+.manual-order-field label { color: var(--ravens-navy); font-size: 0.82rem; font-weight: 800; }
+.manual-tiebreak-select { width: 100%; min-height: 2.8rem; padding: 0.55rem; border: 1px solid #9eacbb; border-radius: 0.45rem; color: var(--ravens-navy); background: white; }
+.manual-tiebreak-save { width: 100%; min-height: 2.9rem; }
+.field-error, .form-errors { color: #9b1c2c; font-size: 0.82rem; }
+.form-errors ul { margin: 0; padding-left: 1.1rem; }
+
 /* Result entry */
 .filter-panel {
   display: grid;

@@ -1,6 +1,7 @@
 from django import forms
 
 from .models import Match, Team
+from .presentation import ordinal
 
 
 GROUP_ASSIGNMENT_SLOTS = (
@@ -33,6 +34,56 @@ class ResetResultsForm(forms.Form):
         if confirmation != 'RESET':
             raise forms.ValidationError('Enter RESET exactly to continue.')
         return confirmation
+
+
+class ManualTiebreakOrderForm(forms.Form):
+    scope = forms.CharField(widget=forms.HiddenInput)
+    team_set_signature = forms.CharField(widget=forms.HiddenInput)
+
+    def __init__(self, requirement, *args, **kwargs):
+        self.requirement = requirement
+        super().__init__(*args, **kwargs)
+        self.fields['scope'].initial = requirement.scope
+        self.fields['team_set_signature'].initial = requirement.signature
+        teams = Team.objects.filter(pk__in=[team.pk for team in requirement.teams])
+        for position, team in enumerate(requirement.teams, start=1):
+            self.fields[f'order_{position}'] = forms.ModelChoiceField(
+                queryset=teams,
+                label=f'{ordinal(position)} among tied teams',
+                initial=team,
+                empty_label='Select a team',
+                widget=forms.Select(attrs={'class': 'manual-tiebreak-select'}),
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if (
+            cleaned_data.get('scope') != self.requirement.scope
+            or cleaned_data.get('team_set_signature') != self.requirement.signature
+        ):
+            raise forms.ValidationError(
+                'This tie has changed. Refresh and review the current standings.'
+            )
+
+        selected = [
+            cleaned_data.get(f'order_{position}')
+            for position in range(1, len(self.requirement.teams) + 1)
+        ]
+        if any(team is None for team in selected):
+            raise forms.ValidationError('Select every tied team exactly once.')
+        expected_ids = {team.pk for team in self.requirement.teams}
+        selected_ids = [team.pk for team in selected]
+        if len(set(selected_ids)) != len(selected_ids):
+            raise forms.ValidationError('Each tied team may appear only once.')
+        if set(selected_ids) != expected_ids:
+            raise forms.ValidationError('Only the currently tied teams may be selected.')
+        return cleaned_data
+
+    def ordered_team_ids(self):
+        return [
+            self.cleaned_data[f'order_{position}'].pk
+            for position in range(1, len(self.requirement.teams) + 1)
+        ]
 
 
 class GroupAssignmentForm(forms.Form):

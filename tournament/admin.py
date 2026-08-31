@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Group, Match, ScheduleEvent, Team
+from .models import Group, ManualTiebreakResolution, Match, ScheduleEvent, Team
 
 
 @admin.register(Team)
@@ -10,6 +10,12 @@ class TeamAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Group)
+
+
+@admin.register(ManualTiebreakResolution)
+class ManualTiebreakResolutionAdmin(admin.ModelAdmin):
+    list_display = ('scope', 'team_set_signature', 'updated_at')
+    readonly_fields = ('updated_at',)
 
 
 @admin.register(ScheduleEvent)

@@ -7,7 +7,13 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase
 
-from tournament.models import Group, Match, ScheduleEvent, Team
+from tournament.models import (
+    Group,
+    ManualTiebreakResolution,
+    Match,
+    ScheduleEvent,
+    Team,
+)
 from tournament.services.database_backup import DatabaseBackup
 from tournament.services.lower_standings import calculate_lower_standings
 from tournament.services.standings import calculate_group_stage_standings
@@ -188,6 +194,11 @@ class ResetResultsCommandTests(TestCase):
         self.assertIsNone(self.group_a_match.home_score)
 
     def test_resets_results_and_preserves_tournament_structure(self):
+        ManualTiebreakResolution.objects.create(
+            scope='group:A',
+            team_set_signature=f'{self.a1.pk},{self.a2.pk}',
+            team_order=[self.a2.pk, self.a1.pk],
+        )
         match_count = Match.objects.count()
         group_count = Group.objects.count()
         event_count = ScheduleEvent.objects.count()
@@ -200,6 +211,7 @@ class ResetResultsCommandTests(TestCase):
         self.assertEqual(ScheduleEvent.objects.count(), event_count)
         self.assertTrue(ScheduleEvent.objects.filter(pk=self.ceremony.pk).exists())
         self.assertEqual(Team.objects.count(), team_count)
+        self.assertFalse(ManualTiebreakResolution.objects.exists())
         self.assertTrue(get_user_model().objects.filter(pk=self.user.pk).exists())
         for match in Match.objects.all():
             self.assertEqual(match.status, Match.Status.SCHEDULED)

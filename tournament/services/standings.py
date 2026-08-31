@@ -2,6 +2,11 @@ from dataclasses import dataclass
 from itertools import groupby
 
 from tournament.models import Group, Match, Team
+from tournament.services.manual_tiebreaks import (
+    get_manual_team_order,
+    group_scope,
+    team_set_signature,
+)
 from tournament.slots import parse_direct_group_slot
 
 
@@ -17,6 +22,7 @@ class StandingRow:
     sets_against: int = 0
     ranking_points: int = 0
     requires_manual_tiebreak: bool = False
+    manual_tiebreak_signature: str = ''
 
     @property
     def set_difference(self):
@@ -109,7 +115,7 @@ def _tie_break_key(row, head_to_head_points):
     )
 
 
-def _order_rows(rows, results, manual_tiebreaks_enabled):
+def _order_rows(rows, results, manual_tiebreaks_enabled, manual_tiebreak_scope):
     ordered_rows = []
     points_buckets = {}
     for row in rows:
@@ -142,8 +148,30 @@ def _order_rows(rows, results, manual_tiebreaks_enabled):
             rows_with_same_key = list(rows_with_same_key)
             if len(rows_with_same_key) > 1:
                 if manual_tiebreaks_enabled:
-                    for row in rows_with_same_key:
-                        row.requires_manual_tiebreak = True
+                    signature = team_set_signature(
+                        row.team.id for row in rows_with_same_key
+                    )
+                    manual_order = (
+                        get_manual_team_order(
+                            manual_tiebreak_scope,
+                            (row.team.id for row in rows_with_same_key),
+                        )
+                        if manual_tiebreak_scope
+                        else None
+                    )
+                    if manual_order:
+                        rows_by_id = {
+                            row.team.id: row for row in rows_with_same_key
+                        }
+                        rows_with_same_key = [
+                            rows_by_id[team_id] for team_id in manual_order
+                        ]
+                        for offset, row in enumerate(rows_with_same_key):
+                            row.position = len(ordered_rows) + offset + 1
+                    else:
+                        for row in rows_with_same_key:
+                            row.requires_manual_tiebreak = True
+                            row.manual_tiebreak_signature = signature
             else:
                 rows_with_same_key[0].position = len(ordered_rows) + 1
             ordered_rows.extend(rows_with_same_key)
@@ -156,6 +184,7 @@ def calculate_standings_rows(
     results,
     *,
     manual_tiebreaks_enabled=True,
+    manual_tiebreak_scope=None,
 ):
     """Calculate and order one standings table from teams and scored results."""
     rows_by_team = {team.id: StandingRow(team=team) for team in teams}
@@ -178,6 +207,7 @@ def calculate_standings_rows(
         list(rows_by_team.values()),
         valid_results,
         manual_tiebreaks_enabled,
+        manual_tiebreak_scope,
     )
 
 
@@ -260,5 +290,6 @@ def calculate_group_stage_standings():
             teams_by_group[code],
             results_by_group[code],
             manual_tiebreaks_enabled=completion.is_complete,
+            manual_tiebreak_scope=group_scope(code),
         )
     return standings

@@ -6,6 +6,7 @@ from tournament.services.standings import (
     calculate_round_robin_completion,
     calculate_standings_rows,
 )
+from tournament.services.manual_tiebreaks import LOWER_SCOPE
 
 
 LOWER_PHASE = 'lower_league'
@@ -97,6 +98,7 @@ def calculate_lower_standings():
             resolved_teams,
             finished_results,
             manual_tiebreaks_enabled=completion.is_complete,
+            manual_tiebreak_scope=LOWER_SCOPE,
         ),
         competition_complete=completion.is_complete,
     )

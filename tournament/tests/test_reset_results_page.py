@@ -7,7 +7,13 @@ from django.core.management.base import CommandError
 from django.test import TestCase
 from django.urls import reverse
 
-from tournament.models import Group, Match, ScheduleEvent, Team
+from tournament.models import (
+    Group,
+    ManualTiebreakResolution,
+    Match,
+    ScheduleEvent,
+    Team,
+)
 from tournament.services.database_backup import DatabaseBackup
 
 
@@ -188,6 +194,11 @@ class ResetResultsPageTests(TestCase):
 
     def test_correct_confirmation_resets_results_and_preserves_structure(self):
         self.login()
+        ManualTiebreakResolution.objects.create(
+            scope='group:A',
+            team_set_signature=f'{self.a1.pk},{self.a2.pk}',
+            team_order=[self.a2.pk, self.a1.pk],
+        )
         team_count = Team.objects.count()
         group_count = Group.objects.count()
         event_count = ScheduleEvent.objects.count()
@@ -201,6 +212,7 @@ class ResetResultsPageTests(TestCase):
         self.assertEqual(Group.objects.count(), group_count)
         self.assertEqual(ScheduleEvent.objects.count(), event_count)
         self.assertEqual(Match.objects.count(), match_count)
+        self.assertFalse(ManualTiebreakResolution.objects.exists())
         self.assertTrue(ScheduleEvent.objects.filter(pk=self.event.pk).exists())
         self.a1.refresh_from_db()
         self.assertEqual(self.a1.group_slot, 'A1')
