@@ -53,6 +53,25 @@ class PublicPageTests(TestCase):
         self.assertContains(response, 'Portugal')
         self.assertContains(response, 'RA')
 
+    def test_teams_page_renders_long_team_names(self):
+        for name in (
+            'Bouncy Badgers',
+            'Lord of the Wings',
+            'London Saints A',
+            'London Saints B',
+        ):
+            Team.objects.create(name=name)
+
+        response = self.client.get(reverse('teams'))
+
+        for name in (
+            'Bouncy Badgers',
+            'Lord of the Wings',
+            'London Saints A',
+            'London Saints B',
+        ):
+            self.assertContains(response, name)
+
     def test_teams_page_shows_the_england_flag(self):
         Team.objects.create(name='London Saints A', country='England')
 
