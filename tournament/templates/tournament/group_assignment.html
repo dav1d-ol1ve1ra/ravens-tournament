@@ -1,0 +1,69 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Group Assignment | Ravens Tournament</title>
+  <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="brand" href="{% url 'home' %}">Ravens Tournament</a>
+      <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
+      <a class="nav-link" href="{% url 'standings' %}">Standings</a>
+      <a class="nav-link" href="{% url 'upper' %}">Upper</a>
+      <a class="nav-link" href="{% url 'teams' %}">Teams</a>
+      <a class="nav-link" href="{% url 'results_admin' %}">Result Entry</a>
+      <a class="nav-link" href="{% url 'group_assignment' %}" aria-current="page">Groups</a>
+      <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+      <form class="nav-logout-form" method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="nav-logout" type="submit">Log out</button>
+      </form>
+    </nav>
+  </header>
+
+  <main class="page-shell group-assignment-page">
+    <h1 class="page-title">Group Assignment</h1>
+
+    {% if messages %}
+      <ul class="messages" aria-live="polite">
+        {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if assignments_locked %}
+      <div class="assignment-lock-warning" role="alert">
+        <strong>Group assignments are locked.</strong>
+        <span>Group Stage results already exist. Assignments cannot be changed without first resolving those results manually.</span>
+      </div>
+    {% endif %}
+
+    <form method="post" class="group-assignment-form" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="assignment-errors" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      {% for group in form_groups %}
+        <fieldset class="assignment-group"{% if assignments_locked %} disabled{% endif %}>
+          <legend>{{ group.name }}</legend>
+          {% for field in group.fields %}
+            <div class="assignment-row">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<div class="field-errors">{{ field.errors }}</div>{% endif %}
+            </div>
+          {% endfor %}
+        </fieldset>
+      {% endfor %}
+
+      {% if not assignments_locked %}
+        <button class="save-button assignment-save" type="submit">Save Group Assignment</button>
+      {% endif %}
+    </form>
+  </main>
+</body>
+</html>

@@ -7,13 +7,14 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from .forms import MatchResultForm
+from .forms import GROUP_ASSIGNMENT_SLOTS, GroupAssignmentForm, MatchResultForm
 from .models import Match, ScheduleEvent, Team
 from .presentation import COUNTRY_FLAGS, participant_name, team_initials
 from .services.knockout_slots import resolve_knockout_slots
 from .services.lower_standings import calculate_lower_standings
 from .services.progression_slots import resolve_progression_slots
 from .services.standings import calculate_group_stage_standings
+from .slot_resolution import resolve_group_stage_slots
 
 
 SCHEDULE_PHASE_LABELS = {
@@ -391,6 +392,60 @@ def upper(request):
         sections.append({'title': title, 'matches': matches, 'is_final': title == 'Final'})
 
     return render(request, 'tournament/upper.html', {'upper_sections': sections})
+
+
+@login_required
+def group_assignment(request):
+    assignments_locked = Match.objects.filter(
+        phase='group_stage',
+        status=Match.Status.FINISHED,
+    ).exists()
+
+    if request.method == 'POST' and assignments_locked:
+        messages.error(
+            request,
+            'Group assignments are locked because Group Stage results already exist.',
+        )
+        return redirect('group_assignment')
+
+    form = GroupAssignmentForm(
+        request.POST if request.method == 'POST' else None,
+        locked=assignments_locked,
+    )
+    if request.method == 'POST' and form.is_valid():
+        with transaction.atomic():
+            Team.objects.exclude(group_slot='').update(group_slot='')
+            assigned_teams = []
+            for slot, team in form.assignments().items():
+                team.group_slot = slot
+                assigned_teams.append(team)
+            Team.objects.bulk_update(assigned_teams, ['group_slot'])
+            fields_updated, matches_updated = resolve_group_stage_slots()
+
+        messages.success(
+            request,
+            'Group assignment saved successfully. '
+            f'Resolved {fields_updated} match field(s) across '
+            f'{matches_updated} match(es).',
+        )
+        return redirect('group_assignment')
+
+    form_groups = [
+        {
+            'name': group_name,
+            'fields': [form[slot] for slot in slots],
+        }
+        for group_name, slots in GROUP_ASSIGNMENT_SLOTS
+    ]
+    return render(
+        request,
+        'tournament/group_assignment.html',
+        {
+            'form': form,
+            'form_groups': form_groups,
+            'assignments_locked': assignments_locked,
+        },
+    )
 
 
 def _result_filters(source):

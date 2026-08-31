@@ -8,5 +8,6 @@ urlpatterns = [
     path('schedule/', views.schedule, name='schedule'),
     path('standings/', views.standings, name='standings'),
     path('upper/', views.upper, name='upper'),
+    path('group-assignment/', views.group_assignment, name='group_assignment'),
     path('results-admin/', views.results_admin, name='results_admin'),
 ]

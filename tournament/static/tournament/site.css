@@ -333,6 +333,21 @@ button, input, select { font: inherit; }
 .save-button:hover, .save-button:focus-visible { background: #ffd95f; outline: 2px solid var(--ravens-navy-light); outline-offset: 1px; }
 .field-errors { margin: 0; padding-left: 1.1rem; color: var(--danger); font-size: 0.82rem; }
 
+/* Group assignment */
+.group-assignment-page { max-width: 760px; }
+.group-assignment-form { display: grid; gap: 0.8rem; }
+.assignment-group { display: grid; gap: 0.55rem; min-width: 0; margin: 0; padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.65rem; background: var(--card-bg); }
+.assignment-group legend { padding: 0 0.35rem; color: var(--ravens-navy); font-size: 1rem; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }
+.assignment-row { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: 0.55rem; align-items: center; }
+.assignment-row label { color: var(--ravens-navy); font-weight: 900; }
+.group-assignment-select { width: 100%; min-width: 0; min-height: 3rem; padding: 0.55rem 2rem 0.55rem 0.65rem; border: 1px solid #94a3b8; border-radius: 0.45rem; color: var(--text); background: white; }
+.group-assignment-select:focus { border-color: var(--ravens-navy-light); outline: 3px solid rgb(245 197 66 / 45%); }
+.assignment-row .field-errors { grid-column: 2; padding: 0; }
+.assignment-lock-warning, .assignment-errors { margin-bottom: 0.8rem; padding: 0.75rem 0.85rem; border: 1px solid #d5a22a; border-radius: 0.55rem; color: #654600; background: #fff5cf; }
+.assignment-lock-warning { display: grid; gap: 0.2rem; }
+.assignment-errors .errorlist { margin: 0; padding-left: 1.1rem; }
+.assignment-save { width: 100%; min-height: 3rem; }
+
 /* Homepage */
 .tournament-hero {
   display: grid;
