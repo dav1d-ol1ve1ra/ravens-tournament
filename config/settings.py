@@ -148,11 +148,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGIN_REDIRECT_URL = 'results_admin'
 
-# PythonAnywhere can enforce HTTPS at the platform layer. These settings protect
-# authentication cookies in production without breaking local HTTP development.
+# PythonAnywhere forwards the original request scheme to Django. Trust that
+# header in production so HTTPS requests are not redirected back to themselves.
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Email
