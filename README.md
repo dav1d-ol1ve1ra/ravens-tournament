@@ -1,170 +1,152 @@
 # IV Ravens Tournament Web App
 
-Public schedule, standings, team information and organiser result entry for the IV Ravens Tournament.
+A Django website for the IV Ravens Tournament. It provides public schedule, standings, team information, and an Upper Bracket page, plus authenticated organiser result entry and group assignment. Production runs on PythonAnywhere with SQLite.
 
-## Tech
+## Local development
 
-- Python
-- Django
-- SQLite
+Create and activate a virtual environment, then install dependencies:
 
-## Local setup
-
-Local development uses `DEBUG=True`, local hosts, and a development-only secret by default. No environment variables are required locally.
-
-1. Create and activate a virtual environment.
-
-   ```powershell
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
-
-2. Install the dependencies.
-
-   ```powershell
-   python -m pip install -r requirements.txt
-   ```
-
-3. Apply database migrations and seed the tournament.
-
-   ```powershell
-   python manage.py migrate
-   python manage.py seed_tournament
-   ```
-
-4. Create an organiser account and start the development server.
-
-   ```powershell
-   python manage.py createsuperuser
-   python manage.py runserver
-   ```
-
-## Useful URLs
-
-- `/`
-- `/schedule/`
-- `/standings/`
-- `/teams/`
-- `/results-admin/`
-- `/admin/`
-
-## Useful management commands
-
-- `python manage.py seed_tournament`
-- `python manage.py resolve_slots`
-- `python manage.py resolve_progression_slots`
-- `python manage.py resolve_knockout_slots`
-
-The resolution commands are development and admin utilities. Normal result entry automatically resolves Upper/Lower standings slots after Group Stage results and winner/loser slots after Upper results. `resolve_day2_slots` remains only as a deprecated alias of `resolve_progression_slots`; it does not run a separate progression system.
-
-## Tournament format note
-
-Group-stage standings support arbitrary group sizes and derive membership from each team's generic group slot, such as `A1`, `A5`, or `B4`. Ranking slots use the inverse format, such as `1A` or `4B`, and resolve only after that group is complete with an unambiguous position. The same isolated standings engine can calculate Group Stage and Lower League round robins without mixing their results.
-
-Upper bracket participants may explicitly depend on the winner or loser of another Match; the symbolic `W-UB-01` and `L-UB-01` forms remain available as readable fallbacks. The development seed now defines the confirmed 5+4 format, but updating this code does not replace any deployed production data.
-
-`ScheduleEvent` stores the complete seeded calendar with explicit, independently variable start and end times. Every seeded match links to its event, while ceremonies, lunches, and free periods exist only as events. Existing `Match.day`, `Match.start_time`, and `Match.court` values remain populated for current pages; there is intentionally no automatic synchronization between the two representations.
-
-To replace an existing old-format development schedule explicitly, run:
-
-```bash
-python manage.py seed_tournament --reset
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
-Run this only against a development database. It removes tournament Groups, Matches, and ScheduleEvents and clears team slot assignments before rebuilding. It preserves users and Team identities, names, countries, short names, and uploaded-logo references. A normal `seed_tournament` run refuses incompatible existing schedule data and is safe to repeat for an empty or already-confirmed structure.
+Apply migrations and, when setting up a development database, seed it:
 
-## Database backups
+```powershell
+python manage.py migrate
+python manage.py seed_tournament
+```
 
-Create a timestamped SQLite backup before the tournament, and before any significant administrative change:
+Use this standard development workflow:
+
+```powershell
+python manage.py test
+python manage.py check
+python manage.py runserver
+```
+
+Create an organiser account when needed:
+
+```powershell
+python manage.py createsuperuser
+```
+
+`python manage.py seed_tournament --reset` is destructive and intended only for local development/testing. It must never be part of a normal production deployment.
+
+## Safe production deployment
+
+On PythonAnywhere, after the production environment variables have been configured in the private WSGI configuration:
+
+```bash
+cd ~/ravens-tournament
+source .venv/bin/activate
+git pull
+python manage.py check
+python manage.py migrate
+python manage.py collectstatic --noinput
+```
+
+Then reload the PythonAnywhere web app from the **Web** tab. `migrate` is only relevant when migrations exist, but is safe to keep in the normal deployment sequence. Never run `seed_tournament --reset` during a normal deployment.
+
+Production settings use `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, and `DJANGO_ALLOWED_HOSTS`. Keep real values out of Git. Map `/static/` to `staticfiles/` and `/media/` to the project `media/` directory in PythonAnywhere; uploaded team logos are media files and are not stored in Git.
+
+## Database backup
+
+Create a timestamped SQLite backup with:
 
 ```bash
 python manage.py backup_database
 ```
 
-Backups are written to `backups/` and are not stored in Git.
+Backups are written to `backups/`, which is ignored by Git. Back up before destructive operations, major tournament changes, and key tournament milestones. Never casually delete `db.sqlite3` in production. There is no automated restore command; database restoration should be handled deliberately outside normal tournament operation.
 
-To restore a backup, stop or reload the application as appropriate, make a backup of the current database first, replace `db.sqlite3` with the selected backup, then reload the application. Do not restore a database casually during the tournament; it replaces live result and organiser data.
+## Group assignment
 
-## PythonAnywhere deployment
+1. Log in.
+2. Open `/group-assignment/`.
+3. Assign every team to `A1`–`A5` and `B1`–`B4`.
+4. Select **Save Group Assignment**.
 
-These steps are for production deployment. Keep production secrets out of Git and do not reuse the development fallback secret.
+Saving resolves Group Stage match participants and referee assignments automatically. No management command is required. Group assignments lock as soon as any Group Stage result is finished.
 
-1. Create a PythonAnywhere account, open a Bash console, and clone the repository.
+## Result entry
 
-   ```bash
-   git clone <repository-url>
-   cd <project-directory>
-   ```
+1. Open `/results-admin/`.
+2. Find the match.
+3. Enter both non-negative scores.
+4. Select **Save Result**.
 
-2. Create and activate a virtual environment using the same Python version selected for the PythonAnywhere web app, then install the project requirements.
+Saving a valid result marks the match Finished, updates standings, resolves group ranking positions when possible, populates Lower League and Upper semifinal participants, and resolves Final/3rd Place participants after semifinals.
 
-   ```bash
-   python3.13 -m venv .venv
-   source .venv/bin/activate
-   python -m pip install -r requirements.txt
-   ```
+**No manual slot-resolution management command is required during normal tournament operation.**
 
-3. Generate a private production secret, then export the production settings in the Bash console. Replace the placeholders with private values and the actual PythonAnywhere hostname.
+## Public pages
 
-   ```bash
-   python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-   export DJANGO_SECRET_KEY='<generated-private-secret>'
-   export DJANGO_DEBUG='False'
-   export DJANGO_ALLOWED_HOSTS='<account-hostname>.pythonanywhere.com'
-   ```
+- `/` — tournament overview and next matches.
+- `/schedule/` — public match and event schedule.
+- `/standings/` — Group Stage and Lower League standings.
+- `/upper/` — Upper Bracket matches and results.
+- `/teams/` — team information and assigned group slots.
 
-   `.env.example` lists the required variable names, but the project deliberately does not auto-load `.env` files or add another dependency. `.env` is ignored by Git.
+## Organiser pages
 
-4. Prepare the SQLite database, initial tournament data, organiser account, and static files.
+- `/results-admin/` — fast mobile result entry during the tournament.
+- `/group-assignment/` — assign teams to Group A and Group B slots before results begin.
+- `/admin/` — Django administration for authorised organisers.
 
-   ```bash
-   python manage.py migrate
-   python manage.py seed_tournament
-   python manage.py createsuperuser
-   python manage.py collectstatic --noinput
-   ```
+## Production safety
 
-   Before the tournament, with the production environment variables configured, organisers should run:
+Do:
 
-   ```bash
-   python manage.py backup_database
-   ```
+- Back up the database before destructive operations.
+- Run tests and checks locally before deployment.
+- Verify public pages after deployment.
+- Use Result Entry for normal tournament results.
 
-5. In PythonAnywhere's **Web** tab, create a web app using **Manual Configuration**, select the same Python version, and configure its virtual environment and working directory.
+Do not:
 
-6. Edit the PythonAnywhere WSGI file linked from the Web tab. Add the directory containing `manage.py` to `sys.path`, set the three private environment values before Django loads, and use `config.settings`:
+- Delete `db.sqlite3`.
+- Run `seed_tournament --reset` during normal deployment.
+- Edit the database manually.
+- Run legacy slot-resolution commands after every result.
+- Make large code changes during the tournament.
 
-   ```python
-   import os
-   import sys
+## Tournament-day checklist
 
-   project_path = '/home/<account-name>/<project-directory>'
-   if project_path not in sys.path:
-       sys.path.insert(0, project_path)
+Before opening:
 
-   os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings'
-   os.environ['DJANGO_SECRET_KEY'] = '<generated-private-secret>'
-   os.environ['DJANGO_DEBUG'] = 'False'
-   os.environ['DJANGO_ALLOWED_HOSTS'] = '<account-hostname>.pythonanywhere.com'
+- Verify the site and organiser login load.
+- Verify Schedule and Group Assignment.
+- Create a database backup.
 
-   from django.core.wsgi import get_wsgi_application
-   application = get_wsgi_application()
-   ```
+During the tournament:
 
-   Store real values only in the private PythonAnywhere WSGI configuration, never in committed files. Enable **Force HTTPS** in the Web tab.
+- Enter results through Result Entry.
+- Check standings periodically.
+- Do not use the terminal for normal progression.
 
-7. In the Web tab's **Static files** section, map:
+Before Day 2:
 
-   - URL: `/static/`
-   - Directory: `/home/<account-name>/<project-directory>/staticfiles`
+- Verify Lower League participants.
+- Verify UB-01 and UB-02 participants.
+- Create a database backup.
 
-   Uploaded team logos use media files, not static files. Add this second mapping:
+After semifinals:
 
-   - URL: `/media/`
-   - Directory: `/home/<USERNAME>/ravens-tournament/media`
+- Verify UB-03 and UB-04 participants.
 
-   Static assets are served from `/static/`; uploaded media is served from `/media/`. The `media` directory is ignored by Git and must be retained separately on PythonAnywhere.
+After the tournament:
 
-8. Reload the web app from the Web tab. After future deployments, activate the virtual environment, export the production variables, apply migrations, rerun `collectstatic`, and reload.
+- Create a final database backup.
 
-PythonAnywhere references: [deploying an existing Django project](https://help.pythonanywhere.com/pages/DeployExistingDjangoProject/) and [configuring Django static files](https://help.pythonanywhere.com/pages/DjangoStaticFiles/).
+## Technical notes
+
+Standings support arbitrary group sizes. Ranking slots use forms such as `1A` and `4B`; Upper matches can depend on winners or losers of earlier matches. The current schedule uses Group A (five teams), Group B (four teams), a Lower League, and an Upper Bracket.
+
+`ScheduleEvent` stores the timetable, including ceremonies, breaks, and free/buffer periods. Matches retain their timing fields for compatibility and link to their schedule events.
+
+## TODO: safe result reset
+
+A safe `python manage.py reset_results` command is planned for future development, but it is **not currently available**. Do not attempt to reset results manually during the tournament.
