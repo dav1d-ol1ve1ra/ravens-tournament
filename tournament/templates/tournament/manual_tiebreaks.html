@@ -50,7 +50,7 @@
         <ul class="manual-tied-teams">
           {% for team in card.requirement.teams %}<li>{{ team.name }}</li>{% endfor %}
         </ul>
-        {% include "tournament/_manual_tiebreak_form.html" with card=card only %}
+        {% include "tournament/_manual_tiebreak_form.html" with card=card %}
       </section>
     {% empty %}
       <p class="empty-state">No tie-breaks currently require resolution.</p>
@@ -68,7 +68,7 @@
             {% for team in card.requirement.current_order %}<li>{{ team.name }}</li>{% endfor %}
           </ol>
           {% if card.is_editing %}
-            {% include "tournament/_manual_tiebreak_form.html" with card=card only %}
+            {% include "tournament/_manual_tiebreak_form.html" with card=card %}
           {% else %}
             <a class="filter-button manual-tiebreak-edit" href="?edit_scope={{ card.requirement.scope|urlencode }}&amp;edit_signature={{ card.requirement.signature|urlencode }}">Edit Tie-break</a>
           {% endif %}

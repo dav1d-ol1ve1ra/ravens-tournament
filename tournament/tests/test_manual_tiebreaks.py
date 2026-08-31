@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from tournament.models import (
@@ -394,6 +394,75 @@ class ManualTiebreakTests(TestCase):
         self.assertEqual(
             ManualTiebreakResolution.objects.get().team_order,
             [teams[0].pk, teams[1].pk],
+        )
+
+    def test_creation_post_succeeds_with_csrf_checks_enabled(self):
+        _, teams = self.create_drawn_group(team_count=2)
+        requirement = get_manual_tiebreak_requirements()[0]
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.user)
+        page = csrf_client.get(reverse('manual_tiebreaks'))
+        token = csrf_client.cookies['csrftoken'].value
+
+        self.assertContains(page, 'name="csrfmiddlewaretoken"')
+        content = page.content.decode()
+        self.assertEqual(content.count('<form'), content.count('</form>'))
+        response = csrf_client.post(
+            reverse('manual_tiebreaks'),
+            {
+                'csrfmiddlewaretoken': token,
+                'scope': requirement.scope,
+                'team_set_signature': requirement.signature,
+                'order_1': teams[1].pk,
+                'order_2': teams[0].pk,
+            },
+        )
+
+        self.assertRedirects(response, reverse('manual_tiebreaks'))
+        self.assertEqual(
+            ManualTiebreakResolution.objects.get().team_order,
+            [teams[1].pk, teams[0].pk],
+        )
+
+    def test_edit_post_succeeds_with_csrf_checks_enabled(self):
+        _, teams = self.create_drawn_group(team_count=2)
+        requirement = get_manual_tiebreak_requirements()[0]
+        save_manual_team_order(
+            requirement.scope,
+            (team.pk for team in teams),
+            (teams[0].pk, teams[1].pk),
+        )
+        _, resolved = get_manual_tiebreak_state()
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.user)
+        edit_page = csrf_client.get(
+            reverse('manual_tiebreaks'),
+            {
+                'edit_scope': resolved[0].scope,
+                'edit_signature': resolved[0].signature,
+            },
+        )
+        token = csrf_client.cookies['csrftoken'].value
+
+        self.assertContains(edit_page, 'name="csrfmiddlewaretoken"')
+        content = edit_page.content.decode()
+        self.assertEqual(content.count('<form'), content.count('</form>'))
+        response = csrf_client.post(
+            reverse('manual_tiebreaks'),
+            {
+                'csrfmiddlewaretoken': token,
+                'scope': resolved[0].scope,
+                'team_set_signature': resolved[0].signature,
+                'order_1': teams[1].pk,
+                'order_2': teams[0].pk,
+            },
+        )
+
+        self.assertRedirects(response, reverse('manual_tiebreaks'))
+        self.assertEqual(ManualTiebreakResolution.objects.count(), 1)
+        self.assertEqual(
+            ManualTiebreakResolution.objects.get().team_order,
+            [teams[1].pk, teams[0].pk],
         )
 
     def test_reset_service_clears_manual_resolutions_and_preserves_schedule(self):
