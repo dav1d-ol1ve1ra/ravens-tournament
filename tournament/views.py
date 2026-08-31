@@ -16,7 +16,8 @@ from .forms import (
     ResetResultsForm,
 )
 from .models import Match, ScheduleEvent, Team
-from .presentation import COUNTRY_FLAGS, participant_name, team_initials
+from .presentation import COUNTRY_FLAGS, ordinal, participant_name, team_initials
+from .services.final_ranking import calculate_final_ranking
 from .services.knockout_slots import resolve_knockout_slots
 from .services.lower_standings import calculate_lower_standings
 from .services.progression_slots import resolve_progression_slots
@@ -400,6 +401,24 @@ def upper(request):
         sections.append({'title': title, 'matches': matches, 'is_final': title == 'Final'})
 
     return render(request, 'tournament/upper.html', {'upper_sections': sections})
+
+
+def final_ranking(request):
+    ranking = calculate_final_ranking()
+    for placement in ranking.placements:
+        placement.position_label = ordinal(placement.position)
+        if placement.team:
+            placement.country_flag = COUNTRY_FLAGS.get(
+                placement.team.country,
+                '🏳️',
+            )
+            placement.initials = team_initials(placement.team)
+
+    return render(
+        request,
+        'tournament/final_ranking.html',
+        {'final_placements': ranking.placements},
+    )
 
 
 @login_required

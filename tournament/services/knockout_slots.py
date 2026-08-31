@@ -43,7 +43,8 @@ def _dependency_key(match, slot, team_field):
     return f'{match_label} {side}'
 
 
-def _resolve_source_outcome(source, outcome):
+def resolve_match_outcome(source, outcome):
+    """Return a finished match's requested winner/loser or an unresolved reason."""
     source_label = source.match_code or f'match {source.pk}'
     if source.status != Match.Status.FINISHED:
         return None, f'Source match {source_label} is not finished'
@@ -139,7 +140,7 @@ def resolve_knockout_slots():
                 resolved_team = None
                 unresolved_slots[key] = dependency_error
             else:
-                resolved_team, resolution_error = _resolve_source_outcome(
+                resolved_team, resolution_error = resolve_match_outcome(
                     source,
                     outcome,
                 )

@@ -1,0 +1,69 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Final Ranking | Ravens Tournament</title>
+  <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="brand" href="{% url 'home' %}">Ravens Tournament</a>
+      <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
+      <a class="nav-link" href="{% url 'standings' %}">Standings</a>
+      <a class="nav-link" href="{% url 'upper' %}">Upper</a>
+      <a class="nav-link" href="{% url 'final_ranking' %}" aria-current="page">Final Ranking</a>
+      <a class="nav-link" href="{% url 'teams' %}">Teams</a>
+      {% if user.is_authenticated %}
+        <a class="nav-link" href="{% url 'results_admin' %}">Result Entry</a>
+        <a class="nav-link" href="{% url 'group_assignment' %}">Groups</a>
+        <a class="nav-link nav-link-subtle" href="{% url 'reset_results' %}">Reset</a>
+        <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+        <form class="nav-logout-form" method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="nav-logout" type="submit">Log out</button>
+        </form>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="page-shell final-ranking-page">
+    <h1 class="page-title">Final Ranking</h1>
+    <p class="final-ranking-intro">The complete 1st–9th tournament classification.</p>
+
+    <ol class="final-ranking-list">
+      {% for placement in final_placements %}
+        <li class="final-ranking-card placement-{{ placement.position }} {% if placement.position <= 3 %}is-podium{% endif %} {% if not placement.team %}is-unresolved{% endif %}">
+          <span class="final-position">{{ placement.position_label }}</span>
+          {% if placement.team %}
+            <div class="final-team-mark">
+              {% if placement.team.logo %}
+                <img src="{{ placement.team.logo.url }}" alt="{{ placement.team.name }} logo">
+              {% else %}
+                <span aria-hidden="true">{{ placement.initials }}</span>
+              {% endif %}
+            </div>
+            <div class="final-team-details">
+              <strong>{{ placement.team.name }}</strong>
+              {% if placement.team.country %}
+                <span><span aria-hidden="true">{{ placement.country_flag }}</span> {{ placement.team.country }}</span>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="final-team-details final-placeholder">
+              <strong>{{ placement.placeholder }}</strong>
+              {% if placement.requires_manual_tiebreak %}
+                <span class="manual-tiebreak">Manual tie-break required</span>
+              {% else %}
+                <span>Not yet determined</span>
+              {% endif %}
+            </div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </main>
+</body>
+</html>
