@@ -45,5 +45,20 @@ def participant_name(match, side):
     return 'TBD'
 
 
+def finished_score_classes(match):
+    """Return semantic score classes for a completed, fully scored match."""
+    if (
+        match.status != 'finished'
+        or match.home_score is None
+        or match.away_score is None
+    ):
+        return '', ''
+    if match.home_score > match.away_score:
+        return 'score-win', 'score-loss'
+    if match.away_score > match.home_score:
+        return 'score-loss', 'score-win'
+    return 'score-draw', 'score-draw'
+
+
 def team_initials(team):
     return ''.join(word[0].upper() for word in team.name.split())

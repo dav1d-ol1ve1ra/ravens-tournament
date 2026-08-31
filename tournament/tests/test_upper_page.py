@@ -126,8 +126,24 @@ class UpperPageTests(TestCase):
             (self.matches['UB-04'].home_team, self.matches['UB-04'].away_team),
             (self.team_a, self.team_d),
         )
-        self.assertContains(response, '8&ndash;5', html=False)
+        self.assertContains(response, 'class="score-badge score-win">8</span>')
+        self.assertContains(response, 'class="score-badge score-loss">5</span>')
         self.assertContains(response, 'Finished')
+
+    def test_upper_page_uses_shared_score_classes_for_a_draw(self):
+        final = self.matches['UB-04']
+        final.home_score = 4
+        final.away_score = 4
+        final.status = Match.Status.FINISHED
+        final.save(update_fields=['home_score', 'away_score', 'status'])
+
+        response = self.client.get(reverse('upper'))
+
+        self.assertContains(
+            response,
+            'class="score-badge score-draw">4</span>',
+            count=2,
+        )
 
     def test_public_navigation_contains_upper(self):
         response = self.client.get(reverse('schedule'))

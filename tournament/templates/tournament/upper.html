@@ -46,7 +46,11 @@
                 <div class="bracket-participants">
                   <strong>{{ match.home_participant }}</strong>
                   {% if match.status == 'finished' %}
-                    <span class="bracket-score">{{ match.home_score }}&ndash;{{ match.away_score }}</span>
+                    <span class="bracket-score" aria-label="Result: {{ match.home_score }} to {{ match.away_score }}">
+                      <span class="score-badge {{ match.home_score_class }}">{{ match.home_score }}</span>
+                      <span class="score-divider" aria-hidden="true">&ndash;</span>
+                      <span class="score-badge {{ match.away_score_class }}">{{ match.away_score }}</span>
+                    </span>
                   {% else %}
                     <span class="bracket-versus">vs</span>
                   {% endif %}

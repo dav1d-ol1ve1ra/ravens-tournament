@@ -146,15 +146,58 @@ class SchedulePageTests(TestCase):
 
         self.assertContains(response, 'A1')
         self.assertContains(response, 'A2')
-        self.assertContains(response, '4 - 2')
+        self.assertContains(response, 'class="score-badge score-win">4</span>')
+        self.assertContains(response, 'class="score-badge score-loss">2</span>')
         self.assertContains(response, 'Group Stage')
+
+    def test_finished_away_win_uses_loss_and_win_score_classes(self):
+        self.finished_match.home_score = 2
+        self.finished_match.away_score = 5
+        self.finished_match.save(update_fields=['home_score', 'away_score'])
+
+        response = self.client.get(reverse('schedule'))
+
+        self.assertContains(response, 'class="score-badge score-loss">2</span>')
+        self.assertContains(response, 'class="score-badge score-win">5</span>')
+
+    def test_finished_draw_uses_draw_classes_for_both_scores(self):
+        self.finished_match.home_score = 3
+        self.finished_match.away_score = 3
+        self.finished_match.save(update_fields=['home_score', 'away_score'])
+
+        response = self.client.get(reverse('schedule'))
+
+        self.assertContains(
+            response,
+            'class="score-badge score-draw">3</span>',
+            count=2,
+        )
+
+    def test_scheduled_match_does_not_receive_result_score_classes(self):
+        response = self.client.get(reverse('schedule'))
+        scheduled_event = next(
+            event
+            for day in response.context['days']
+            for event in day['events']
+            if event.pk == self.scheduled_event.pk
+        )
+
+        self.assertEqual(scheduled_event.linked_match.home_score_class, '')
+        self.assertEqual(scheduled_event.linked_match.away_score_class, '')
+        self.assertContains(response, '<span class="match-score">vs</span>')
+
+    def test_court_view_uses_the_same_finished_score_classes(self):
+        response = self.client.get(f'{reverse("schedule")}?view=courts')
+
+        self.assertContains(response, 'class="score-badge score-win">4</strong>')
+        self.assertContains(response, 'class="score-badge score-loss">2</strong>')
 
     def test_schedule_events_and_matches_are_in_chronological_order(self):
         response = self.client.get(reverse('schedule'))
         content = response.content.decode()
 
         self.assertLess(content.index('Opening Ceremony'), content.index('A1'))
-        self.assertLess(content.index('A1'), content.index('4 - 2'))
+        self.assertLess(content.index('A1'), content.index('Result: 4 to 2'))
 
     def test_resolved_team_name_is_preferred_to_symbolic_slot(self):
         team = Team.objects.create(name='Ravens A')
@@ -360,10 +403,10 @@ class SchedulePageTests(TestCase):
         finished = self.client.get(f'{reverse("schedule")}?status=finished')
         scheduled = self.client.get(f'{reverse("schedule")}?status=scheduled')
 
-        self.assertContains(finished, '4 - 2')
+        self.assertContains(finished, 'Result: 4 to 2')
         self.assertNotContains(finished, 'A1')
         self.assertContains(finished, 'Lunch')
         self.assertContains(finished, 'Opening Ceremony')
         self.assertContains(scheduled, 'A1')
-        self.assertNotContains(scheduled, '4 - 2')
+        self.assertNotContains(scheduled, 'Result: 4 to 2')
         self.assertContains(scheduled, 'Free / Margin')

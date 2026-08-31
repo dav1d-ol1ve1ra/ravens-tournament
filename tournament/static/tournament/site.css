@@ -171,7 +171,12 @@ button, input, select { font: inherit; }
 .schedule-team { overflow-wrap: anywhere; }
 .schedule-team:last-child { text-align: right; }
 .match-score { min-width: 3.1rem; color: var(--ravens-navy); font-size: 1.15rem; text-align: center; }
-.match-score.is-result { padding: 0.22rem 0.4rem; border-radius: 0.3rem; color: var(--ravens-navy); background: #fff1be; font-weight: 850; }
+.match-score.is-result, .court-score, .bracket-score { display: inline-flex; gap: 0.2rem; align-items: center; justify-content: center; font-weight: 850; }
+.score-badge { display: inline-grid; min-width: 1.7rem; min-height: 1.7rem; padding: 0.14rem 0.34rem; place-items: center; border-radius: 0.35rem; line-height: 1; }
+.score-win { color: #fff; background: #147447; }
+.score-loss { color: #fff; background: #b02a37; }
+.score-draw { color: #3d2a00; background: var(--ravens-gold); }
+.score-divider { color: var(--muted); font-weight: 850; }
 .match-referee { color: var(--muted); font-size: 0.82rem; }
 
 .schedule-view-controls { display: flex; gap: 0.3rem; margin: 0 0 0.45rem; flex-wrap: wrap; }
@@ -233,7 +238,7 @@ button, input, select { font: inherit; }
 .participants { display: grid; gap: 0.2rem; justify-items: center; color: var(--ravens-navy); font-size: 0.93rem; line-height: 1.22; text-align: center; }
 .participants strong { overflow-wrap: anywhere; }
 .court-score, .court-versus { min-width: 2.4rem; color: var(--ravens-navy); text-align: center; }
-.court-score { margin: 0.08rem 0; padding: 0.16rem 0.4rem; border-radius: 0.3rem; background: #fff0bd; font-size: 1rem; }
+.court-score { margin: 0.08rem 0; font-size: 1rem; }
 .court-versus { color: var(--muted); font-size: 0.76rem; font-weight: 850; letter-spacing: 0.04em; text-transform: uppercase; }
 .match-meta { display: flex; gap: 0.25rem; flex-wrap: wrap; color: var(--ravens-navy-light); font-size: 0.73rem; font-weight: 750; }
 .court-match .match-referee { margin: 0; color: var(--muted); font-size: 0.75rem; font-weight: 700; }
@@ -289,7 +294,7 @@ button, input, select { font: inherit; }
 .bracket-participants { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 0.5rem; align-items: center; padding: 0.65rem 0; border-top: 1px solid #e3e8ee; border-bottom: 1px solid #e3e8ee; color: var(--ravens-navy); }
 .bracket-participants strong { overflow-wrap: anywhere; }
 .bracket-participants strong:last-child { text-align: right; }
-.bracket-score { min-width: 3.3rem; padding: 0.22rem 0.4rem; border-radius: 0.35rem; color: var(--ravens-navy); background: #fff0bd; font-size: 1.05rem; font-weight: 900; text-align: center; }
+.bracket-score { min-width: 3.3rem; color: var(--ravens-navy); font-size: 1.05rem; font-weight: 900; text-align: center; }
 .bracket-versus { min-width: 2rem; color: var(--muted); font-size: 0.78rem; font-weight: 850; text-align: center; text-transform: uppercase; }
 .upper-match-card .match-state { width: fit-content; margin-left: 0; }
 .upper-page { display: grid; gap: 1.35rem; }

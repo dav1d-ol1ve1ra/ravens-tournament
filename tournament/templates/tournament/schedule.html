@@ -91,7 +91,11 @@
                   <div class="schedule-pair">
                     <span class="schedule-team">{{ event.home_participant }}</span>
                     {% if event.linked_match.status == "finished" %}
-                      <span class="match-score is-result">{{ event.linked_match.home_score }} - {{ event.linked_match.away_score }}</span>
+                      <span class="match-score is-result" aria-label="Result: {{ event.linked_match.home_score }} to {{ event.linked_match.away_score }}">
+                        <span class="score-badge {{ event.linked_match.home_score_class }}">{{ event.linked_match.home_score }}</span>
+                        <span class="score-divider" aria-hidden="true">&ndash;</span>
+                        <span class="score-badge {{ event.linked_match.away_score_class }}">{{ event.linked_match.away_score }}</span>
+                      </span>
                     {% else %}
                       <span class="match-score">vs</span>
                     {% endif %}
@@ -153,7 +157,11 @@
                                 <div class="participants">
                                   <strong>{{ event.home_participant }}</strong>
                                   {% if event.linked_match.status == "finished" %}
-                                    <strong class="court-score">{{ event.linked_match.home_score }}&ndash;{{ event.linked_match.away_score }}</strong>
+                                    <span class="court-score" aria-label="Result: {{ event.linked_match.home_score }} to {{ event.linked_match.away_score }}">
+                                      <strong class="score-badge {{ event.linked_match.home_score_class }}">{{ event.linked_match.home_score }}</strong>
+                                      <span class="score-divider" aria-hidden="true">&ndash;</span>
+                                      <strong class="score-badge {{ event.linked_match.away_score_class }}">{{ event.linked_match.away_score }}</strong>
+                                    </span>
                                   {% else %}
                                     <span class="court-versus">vs</span>
                                   {% endif %}

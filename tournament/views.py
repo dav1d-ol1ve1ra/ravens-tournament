@@ -16,7 +16,13 @@ from .forms import (
     ResetResultsForm,
 )
 from .models import Match, ScheduleEvent, Team
-from .presentation import COUNTRY_FLAGS, ordinal, participant_name, team_initials
+from .presentation import (
+    COUNTRY_FLAGS,
+    finished_score_classes,
+    ordinal,
+    participant_name,
+    team_initials,
+)
 from .services.final_ranking import calculate_final_ranking
 from .services.knockout_slots import resolve_knockout_slots
 from .services.lower_standings import calculate_lower_standings
@@ -104,6 +110,9 @@ def _schedule_days(events, courts):
         event.kind_label = event.get_event_type_display()
         if match:
             match.phase_label = SCHEDULE_PHASE_LABELS.get(match.phase, match.phase)
+            match.home_score_class, match.away_score_class = finished_score_classes(
+                match
+            )
             event.home_participant = participant_name(match, 'home')
             event.away_participant = participant_name(match, 'away')
             event.referee_participant = participant_name(match, 'referee')
@@ -389,6 +398,9 @@ def upper(request):
                 continue
             schedule_event = match.schedule_event
             match.phase_label = SCHEDULE_PHASE_LABELS.get(match.phase, match.phase)
+            match.home_score_class, match.away_score_class = finished_score_classes(
+                match
+            )
             match.home_participant = participant_name(match, 'home')
             match.away_participant = participant_name(match, 'away')
             match.referee_participant = participant_name(match, 'referee')
