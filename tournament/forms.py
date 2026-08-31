@@ -46,7 +46,8 @@ class ManualTiebreakOrderForm(forms.Form):
         self.fields['scope'].initial = requirement.scope
         self.fields['team_set_signature'].initial = requirement.signature
         teams = Team.objects.filter(pk__in=[team.pk for team in requirement.teams])
-        for position, team in enumerate(requirement.teams, start=1):
+        initial_order = requirement.current_order or requirement.teams
+        for position, team in enumerate(initial_order, start=1):
             self.fields[f'order_{position}'] = forms.ModelChoiceField(
                 queryset=teams,
                 label=f'{ordinal(position)} among tied teams',

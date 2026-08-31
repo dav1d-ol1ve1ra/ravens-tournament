@@ -61,6 +61,7 @@ class ManualTiebreakRequirement:
     competition_label: str
     signature: str
     teams: tuple[Team, ...]
+    current_order: tuple[Team, ...] = ()
 
 
 def _requirements_from_rows(scope, competition_label, rows):
@@ -79,21 +80,50 @@ def _requirements_from_rows(scope, competition_label, rows):
     ]
 
 
-def get_manual_tiebreak_requirements():
-    """Recalculate and return only ties still requiring organiser ordering."""
+def get_manual_tiebreak_state():
+    """Return unresolved and active resolutions from automatic standings ties."""
     # Local imports avoid a module cycle: standings uses the persistence helpers above.
     from tournament.services.lower_standings import calculate_lower_standings
     from tournament.services.standings import calculate_group_stage_standings
 
-    requirements = []
-    for code, rows in calculate_group_stage_standings().items():
-        requirements.extend(
+    automatic_requirements = []
+    for code, rows in calculate_group_stage_standings(
+        apply_manual_tiebreaks=False
+    ).items():
+        automatic_requirements.extend(
             _requirements_from_rows(group_scope(code), f'Group {code}', rows)
         )
 
-    lower = calculate_lower_standings()
+    lower = calculate_lower_standings(apply_manual_tiebreaks=False)
     if lower.is_resolved:
-        requirements.extend(
+        automatic_requirements.extend(
             _requirements_from_rows(LOWER_SCOPE, 'Lower League', lower.rows)
         )
-    return requirements
+
+    unresolved = []
+    resolved = []
+    for requirement in automatic_requirements:
+        order_ids = get_manual_team_order(
+            requirement.scope,
+            (team.pk for team in requirement.teams),
+        )
+        if order_ids is None:
+            unresolved.append(requirement)
+            continue
+        teams_by_id = {team.pk: team for team in requirement.teams}
+        resolved.append(
+            ManualTiebreakRequirement(
+                scope=requirement.scope,
+                competition_label=requirement.competition_label,
+                signature=requirement.signature,
+                teams=requirement.teams,
+                current_order=tuple(teams_by_id[team_id] for team_id in order_ids),
+            )
+        )
+    return unresolved, resolved
+
+
+def get_manual_tiebreak_requirements():
+    """Return genuine automatic ties that do not yet have a valid manual order."""
+    unresolved, _ = get_manual_tiebreak_state()
+    return unresolved

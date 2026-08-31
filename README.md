@@ -94,6 +94,8 @@ If **Manual tie-break required** appears:
 
 Manual ordering is used only when a completed competition cannot be separated by the automatic criteria. Group ranking slots, Lower participants, and Upper semifinal participants update automatically after a Group Stage tie-break. A saved resolution is ignored if corrected results change or remove its exact tied-team set.
 
+Active manual orders remain visible under **Resolved manual tie-breaks** and can be edited if an organiser entered the agreed order incorrectly. The site rechecks the underlying automatic tie before accepting an edit.
+
 ## Public pages
 
 - `/` — tournament overview and next matches.

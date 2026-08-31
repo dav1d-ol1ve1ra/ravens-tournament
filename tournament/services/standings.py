@@ -221,7 +221,7 @@ def _match_group_code(match):
     return None
 
 
-def calculate_group_stage_standings():
+def calculate_group_stage_standings(*, apply_manual_tiebreaks=True):
     """Calculate standings for every configured or assigned tournament group."""
     configured_codes = list(
         Group.objects.order_by('code', 'pk').values_list('code', flat=True)
@@ -290,6 +290,8 @@ def calculate_group_stage_standings():
             teams_by_group[code],
             results_by_group[code],
             manual_tiebreaks_enabled=completion.is_complete,
-            manual_tiebreak_scope=group_scope(code),
+            manual_tiebreak_scope=(
+                group_scope(code) if apply_manual_tiebreaks else None
+            ),
         )
     return standings

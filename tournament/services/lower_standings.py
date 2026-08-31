@@ -29,7 +29,7 @@ class LowerStandingsResult:
         return 'Lower League teams will be determined after the Group Stage.'
 
 
-def calculate_lower_standings():
+def calculate_lower_standings(*, apply_manual_tiebreaks=True):
     """Calculate a Lower round robin from its resolved symbolic participants."""
     matches = list(
         Match.objects.filter(phase=LOWER_PHASE)
@@ -98,7 +98,7 @@ def calculate_lower_standings():
             resolved_teams,
             finished_results,
             manual_tiebreaks_enabled=completion.is_complete,
-            manual_tiebreak_scope=LOWER_SCOPE,
+            manual_tiebreak_scope=(LOWER_SCOPE if apply_manual_tiebreaks else None),
         ),
         competition_complete=completion.is_complete,
     )

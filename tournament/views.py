@@ -28,7 +28,7 @@ from .services.final_ranking import calculate_final_ranking
 from .services.knockout_slots import resolve_knockout_slots
 from .services.lower_standings import calculate_lower_standings
 from .services.manual_tiebreaks import (
-    get_manual_tiebreak_requirements,
+    get_manual_tiebreak_state,
     save_manual_team_order,
 )
 from .services.progression_slots import resolve_progression_slots
@@ -541,7 +541,8 @@ def _manual_tiebreak_form_cards(requirements, submitted=None, data=None):
 
 @login_required
 def manual_tiebreaks(request):
-    requirements = get_manual_tiebreak_requirements()
+    unresolved_requirements, resolved_requirements = get_manual_tiebreak_state()
+    requirements = unresolved_requirements + resolved_requirements
     submitted = None
     if request.method == 'POST':
         submitted = (
@@ -566,10 +567,13 @@ def manual_tiebreaks(request):
             form = ManualTiebreakOrderForm(requirement, request.POST)
             if form.is_valid():
                 with transaction.atomic():
+                    current_unresolved, current_resolved = (
+                        get_manual_tiebreak_state()
+                    )
                     current_requirement = next(
                         (
                             item
-                            for item in get_manual_tiebreak_requirements()
+                            for item in current_unresolved + current_resolved
                             if (item.scope, item.signature) == submitted
                         ),
                         None,
@@ -595,15 +599,41 @@ def manual_tiebreaks(request):
                         )
                         return redirect('manual_tiebreaks')
 
-    cards = _manual_tiebreak_form_cards(
-        requirements,
+    unresolved_cards = _manual_tiebreak_form_cards(
+        unresolved_requirements,
         submitted=submitted,
         data=request.POST if request.method == 'POST' else None,
     )
+    edit_requested = (
+        request.GET.get('edit_scope', ''),
+        request.GET.get('edit_signature', ''),
+    )
+    resolved_cards = []
+    for requirement in resolved_requirements:
+        key = (requirement.scope, requirement.signature)
+        is_editing = key == submitted or key == edit_requested
+        form = ManualTiebreakOrderForm(
+            requirement,
+            request.POST if key == submitted else None,
+        )
+        resolved_cards.append(
+            {
+                'requirement': requirement,
+                'form': form,
+                'is_editing': is_editing,
+                'order_fields': [
+                    form[f'order_{position}']
+                    for position in range(1, len(requirement.teams) + 1)
+                ],
+            }
+        )
     return render(
         request,
         'tournament/manual_tiebreaks.html',
-        {'tiebreak_cards': cards},
+        {
+            'unresolved_tiebreak_cards': unresolved_cards,
+            'resolved_tiebreak_cards': resolved_cards,
+        },
     )
 
 

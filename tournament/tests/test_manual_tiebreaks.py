@@ -19,6 +19,7 @@ from tournament.services.final_ranking import calculate_final_ranking
 from tournament.services.manual_tiebreaks import (
     LOWER_SCOPE,
     get_manual_tiebreak_requirements,
+    get_manual_tiebreak_state,
     group_scope,
     save_manual_team_order,
 )
@@ -151,6 +152,46 @@ class ManualTiebreakTests(TestCase):
         self.assertFalse(any(row.requires_manual_tiebreak for row in rows))
         self.assertContains(response, 'Group A manual tie-break saved.')
 
+    def test_saved_order_appears_as_resolved_and_is_preselected_for_edit(self):
+        _, teams = self.create_drawn_group(team_count=2)
+        self.login()
+        requirement = get_manual_tiebreak_requirements()[0]
+        manual_order = (teams[1], teams[0])
+        self.post_requirement(requirement, manual_order)
+
+        page = self.client.get(reverse('manual_tiebreaks'))
+        self.assertContains(page, 'Resolved manual tie-breaks')
+        self.assertContains(page, 'Current manual order')
+        self.assertContains(page, 'Edit Tie-break')
+        resolved = page.context['resolved_tiebreak_cards'][0]['requirement']
+        self.assertEqual(resolved.current_order, manual_order)
+
+        edit_page = self.client.get(
+            reverse('manual_tiebreaks'),
+            {
+                'edit_scope': resolved.scope,
+                'edit_signature': resolved.signature,
+            },
+        )
+        form = edit_page.context['resolved_tiebreak_cards'][0]['form']
+        self.assertEqual(int(form['order_1'].value()), teams[1].pk)
+        self.assertEqual(int(form['order_2'].value()), teams[0].pk)
+
+    def test_existing_order_can_be_reversed_without_creating_a_duplicate(self):
+        _, teams = self.create_drawn_group(team_count=2)
+        self.login()
+        requirement = get_manual_tiebreak_requirements()[0]
+        self.post_requirement(requirement, teams)
+        _, resolved = get_manual_tiebreak_state()
+
+        self.post_requirement(resolved[0], teams[::-1])
+
+        resolution = ManualTiebreakResolution.objects.get()
+        self.assertEqual(ManualTiebreakResolution.objects.count(), 1)
+        self.assertEqual(resolution.team_order, [teams[1].pk, teams[0].pk])
+        rows = calculate_group_stage_standings()['A']
+        self.assertEqual([row.team for row in rows], teams[::-1])
+
     def test_three_team_manual_order_is_supported(self):
         _, teams = self.create_drawn_group(team_count=3)
         self.login()
@@ -226,6 +267,37 @@ class ManualTiebreakTests(TestCase):
         self.assertEqual(rows[0].position, 1)
         self.assertTrue(ManualTiebreakResolution.objects.exists())
 
+        self.login()
+        page = self.client.get(reverse('manual_tiebreaks'))
+        self.assertNotContains(page, 'Current manual order')
+        stale_post = self.post_requirement(requirement, teams[::-1])
+        self.assertContains(stale_post, 'tied-team set has changed')
+
+    def test_changed_tied_team_set_is_not_offered_as_an_edit(self):
+        _, teams = self.create_drawn_group(team_count=3)
+        self.login()
+        original = get_manual_tiebreak_requirements()[0]
+        self.post_requirement(original, teams)
+
+        for match in Match.objects.filter(phase='group_stage'):
+            pair = {match.home_team_id, match.away_team_id}
+            if teams[2].pk in pair and pair != {teams[0].pk, teams[1].pk}:
+                if match.home_team == teams[2]:
+                    match.home_score, match.away_score = 0, 2
+                else:
+                    match.home_score, match.away_score = 2, 0
+                match.save(update_fields=['home_score', 'away_score'])
+
+        unresolved, resolved = get_manual_tiebreak_state()
+        self.assertEqual(resolved, [])
+        self.assertEqual(len(unresolved), 1)
+        self.assertEqual({team.pk for team in unresolved[0].teams}, {teams[0].pk, teams[1].pk})
+        self.assertNotEqual(unresolved[0].signature, original.signature)
+
+        stale_post = self.post_requirement(original, teams)
+        self.assertContains(stale_post, 'tied-team set has changed')
+        self.assertEqual(ManualTiebreakResolution.objects.count(), 1)
+
     def test_group_manual_order_triggers_ranking_and_lower_progression(self):
         _, teams = self.create_drawn_group(team_count=3)
         upper = Match.objects.create(
@@ -261,6 +333,19 @@ class ManualTiebreakTests(TestCase):
         )
         self.assertEqual(lower.home_team, teams[0])
 
+        _, resolved = get_manual_tiebreak_state()
+        edited_order = (teams[0], teams[1], teams[2])
+        self.post_requirement(resolved[0], edited_order)
+        upper.refresh_from_db()
+        lower.refresh_from_db()
+
+        self.assertEqual(
+            (upper.home_team, upper.away_team, upper.referee_team),
+            edited_order,
+        )
+        self.assertEqual(lower.home_team, teams[2])
+        self.assertEqual(ManualTiebreakResolution.objects.count(), 1)
+
     def test_lower_manual_order_updates_final_ranking(self):
         teams_by_slot = self.create_drawn_lower_league()
         self.login()
@@ -279,6 +364,37 @@ class ManualTiebreakTests(TestCase):
             list(manual_order),
         )
         self.assertEqual(set(teams_by_slot.values()), set(manual_order))
+
+        _, resolved = get_manual_tiebreak_state()
+        edited_order = tuple(reversed(manual_order))
+        self.post_requirement(resolved[0], edited_order)
+
+        edited_placements = calculate_final_ranking().placements[4:]
+        self.assertEqual(
+            [placement.team for placement in edited_placements],
+            list(edited_order),
+        )
+        self.assertEqual(ManualTiebreakResolution.objects.count(), 1)
+
+    def test_anonymous_user_cannot_submit_an_edit(self):
+        _, teams = self.create_drawn_group(team_count=2)
+        requirement = get_manual_tiebreak_requirements()[0]
+        save_manual_team_order(
+            requirement.scope,
+            (team.pk for team in teams),
+            (teams[0].pk, teams[1].pk),
+        )
+
+        response = self.post_requirement(requirement, teams[::-1])
+
+        self.assertRedirects(
+            response,
+            f'{reverse("login")}?next={reverse("manual_tiebreaks")}',
+        )
+        self.assertEqual(
+            ManualTiebreakResolution.objects.get().team_order,
+            [teams[0].pk, teams[1].pk],
+        )
 
     def test_reset_service_clears_manual_resolutions_and_preserves_schedule(self):
         _, teams = self.create_drawn_group(team_count=2)

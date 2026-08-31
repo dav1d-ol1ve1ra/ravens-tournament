@@ -1,0 +1,16 @@
+<form method="post">
+  {% csrf_token %}
+  {{ card.form.scope }}
+  {{ card.form.team_set_signature }}
+  {% if card.form.non_field_errors %}<div class="form-errors">{{ card.form.non_field_errors }}</div>{% endif %}
+  <div class="manual-order-fields">
+    {% for field in card.order_fields %}
+      <div class="manual-order-field">
+        {{ field.label_tag }}
+        {{ field }}
+        {% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+  <button class="primary-button manual-tiebreak-save" type="submit">Save Tie-break</button>
+</form>

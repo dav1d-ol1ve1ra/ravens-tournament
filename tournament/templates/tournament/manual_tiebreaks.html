@@ -36,34 +36,47 @@
       {% for message in messages %}<p class="message {{ message.tags }}">{{ message }}</p>{% endfor %}
     {% endif %}
 
-    {% for card in tiebreak_cards %}
+    {% if not unresolved_tiebreak_cards and not resolved_tiebreak_cards %}
+      <p class="empty-state">No manual tie-breaks are currently required.</p>
+    {% endif %}
+
+    <section class="manual-tiebreak-section" aria-labelledby="unresolved-tiebreaks">
+      <h2 class="section-title" id="unresolved-tiebreaks">Tie-breaks requiring resolution</h2>
+    {% for card in unresolved_tiebreak_cards %}
       <section class="manual-tiebreak-card" aria-labelledby="tie-{{ forloop.counter }}">
         <p class="manual-tiebreak-alert">Manual tie-break required</p>
-        <h2 id="tie-{{ forloop.counter }}">{{ card.requirement.competition_label }}</h2>
+        <h3 id="tie-{{ forloop.counter }}">{{ card.requirement.competition_label }}</h3>
         <p class="manual-tiebreak-label">Tied teams</p>
         <ul class="manual-tied-teams">
           {% for team in card.requirement.teams %}<li>{{ team.name }}</li>{% endfor %}
         </ul>
-        <form method="post">
-          {% csrf_token %}
-          {{ card.form.scope }}
-          {{ card.form.team_set_signature }}
-          {% if card.form.non_field_errors %}<div class="form-errors">{{ card.form.non_field_errors }}</div>{% endif %}
-          <div class="manual-order-fields">
-            {% for field in card.order_fields %}
-              <div class="manual-order-field">
-                {{ field.label_tag }}
-                {{ field }}
-                {% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
-              </div>
-            {% endfor %}
-          </div>
-          <button class="primary-button manual-tiebreak-save" type="submit">Save Tie-break</button>
-        </form>
+        {% include "tournament/_manual_tiebreak_form.html" with card=card only %}
       </section>
     {% empty %}
-      <p class="empty-state">No manual tie-breaks are currently required.</p>
+      <p class="empty-state">No tie-breaks currently require resolution.</p>
     {% endfor %}
+    </section>
+
+    <section class="manual-tiebreak-section" aria-labelledby="resolved-tiebreaks">
+      <h2 class="section-title" id="resolved-tiebreaks">Resolved manual tie-breaks</h2>
+      {% for card in resolved_tiebreak_cards %}
+        <section class="manual-tiebreak-card is-resolved" aria-labelledby="resolved-tie-{{ forloop.counter }}">
+          <p class="manual-tiebreak-resolved-label">Active manual order</p>
+          <h3 id="resolved-tie-{{ forloop.counter }}">{{ card.requirement.competition_label }}</h3>
+          <p class="manual-tiebreak-label">Current manual order</p>
+          <ol class="manual-current-order">
+            {% for team in card.requirement.current_order %}<li>{{ team.name }}</li>{% endfor %}
+          </ol>
+          {% if card.is_editing %}
+            {% include "tournament/_manual_tiebreak_form.html" with card=card only %}
+          {% else %}
+            <a class="filter-button manual-tiebreak-edit" href="?edit_scope={{ card.requirement.scope|urlencode }}&amp;edit_signature={{ card.requirement.signature|urlencode }}">Edit Tie-break</a>
+          {% endif %}
+        </section>
+      {% empty %}
+        <p class="empty-state">No resolved manual tie-breaks are currently active.</p>
+      {% endfor %}
+    </section>
   </main>
 </body>
 </html>
