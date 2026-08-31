@@ -43,6 +43,44 @@ class PublicPageTests(TestCase):
         self.assertContains(response, 'https://linktr.ee/4th_ravens_tournament')
         self.assertEqual(response.content.count(b'<article class="next-match">'), 4)
 
+    def test_homepage_has_main_tournament_shortcuts(self):
+        response = self.client.get(reverse('home'))
+
+        expected_shortcuts = {
+            'schedule': reverse('schedule'),
+            'standings': reverse('standings'),
+            'upper': reverse('upper'),
+            'final-ranking': reverse('final_ranking'),
+            'teams': reverse('teams'),
+        }
+        for shortcut, url in expected_shortcuts.items():
+            self.assertContains(
+                response,
+                f'data-home-shortcut="{shortcut}" href="{url}"',
+            )
+
+    def test_homepage_organiser_shortcuts_require_authentication(self):
+        public_response = self.client.get(reverse('home'))
+
+        self.assertNotContains(public_response, 'data-organiser-shortcut=')
+
+        user = get_user_model().objects.create_user(
+            username='homepage-organiser',
+            password='test-password',
+        )
+        self.client.force_login(user)
+        organiser_response = self.client.get(reverse('home'))
+
+        self.assertContains(
+            organiser_response,
+            f'data-organiser-shortcut="results" href="{reverse("results_admin")}"',
+        )
+        self.assertContains(
+            organiser_response,
+            f'data-organiser-shortcut="groups" href="{reverse("group_assignment")}"',
+        )
+        self.assertNotContains(organiser_response, 'data-organiser-shortcut="reset"')
+
     def test_teams_page_shows_country_and_placeholder(self):
         Team.objects.create(name='Ravens A', country='Portugal')
 

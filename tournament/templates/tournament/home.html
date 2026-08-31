@@ -50,12 +50,26 @@
       </dl>
     </section>
 
-    <section class="quick-links" aria-label="Tournament pages">
-      <a href="{% url 'schedule' %}"><strong>Schedule</strong><span>Fixtures and results</span></a>
-      <a href="{% url 'standings' %}"><strong>Standings</strong><span>Group rankings</span></a>
-      <a href="{% url 'upper' %}"><strong>Upper</strong><span>Knockout matches</span></a>
-      <a href="{% url 'teams' %}"><strong>Teams</strong><span>Meet the competitors</span></a>
+    <section class="home-shortcuts" aria-labelledby="tournament-links-title">
+      <h2 class="shortcut-title" id="tournament-links-title">Tournament</h2>
+      <nav class="quick-links" aria-label="Tournament pages">
+        <a data-home-shortcut="schedule" href="{% url 'schedule' %}"><strong>Schedule</strong><span>Fixtures and results</span></a>
+        <a data-home-shortcut="standings" href="{% url 'standings' %}"><strong>Standings</strong><span>Group rankings</span></a>
+        <a data-home-shortcut="upper" href="{% url 'upper' %}"><strong>Upper Bracket</strong><span>Knockout matches</span></a>
+        <a data-home-shortcut="final-ranking" href="{% url 'final_ranking' %}"><strong>Final Ranking</strong><span>1st–9th classification</span></a>
+        <a data-home-shortcut="teams" href="{% url 'teams' %}"><strong>Teams</strong><span>Meet the competitors</span></a>
+      </nav>
     </section>
+
+    {% if user.is_authenticated %}
+      <section class="home-shortcuts organiser-shortcuts" aria-labelledby="organiser-links-title">
+        <h2 class="shortcut-title" id="organiser-links-title">Organiser</h2>
+        <nav class="quick-links organiser-links" aria-label="Organiser pages">
+          <a data-organiser-shortcut="results" href="{% url 'results_admin' %}"><strong>Result Entry</strong><span>Enter and correct scores</span></a>
+          <a data-organiser-shortcut="groups" href="{% url 'group_assignment' %}"><strong>Groups</strong><span>Assign tournament slots</span></a>
+        </nav>
+      </section>
+    {% endif %}
 
     <section aria-labelledby="next-matches-title">
       <h2 class="section-title" id="next-matches-title">Next Matches</h2>
