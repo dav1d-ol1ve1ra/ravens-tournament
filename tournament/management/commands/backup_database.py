@@ -1,55 +1,15 @@
-import sqlite3
-from contextlib import closing
-from pathlib import Path
+from django.core.management.base import BaseCommand
 
-from django.conf import settings
-from django.core.management.base import BaseCommand, CommandError
-from django.utils import timezone
+from tournament.services.database_backup import create_database_backup
 
 
 class Command(BaseCommand):
     help = 'Create a timestamped backup of the configured SQLite database.'
 
     def handle(self, *args, **options):
-        database_settings = settings.DATABASES['default']
-        if database_settings['ENGINE'] != 'django.db.backends.sqlite3':
-            raise CommandError('backup_database only supports SQLite databases.')
-
-        source = Path(database_settings['NAME'])
-        if not source.is_file():
-            raise CommandError(f'Configured SQLite database was not found: {source}')
-
-        backup_directory = Path(settings.BASE_DIR) / 'backups'
-        backup_directory.mkdir(parents=True, exist_ok=True)
-        destination = self._reserve_destination(backup_directory)
-
-        try:
-            with (
-                closing(sqlite3.connect(source)) as source_connection,
-                closing(sqlite3.connect(destination)) as destination_connection,
-            ):
-                source_connection.backup(destination_connection)
-        except sqlite3.Error as error:
-            destination.unlink(missing_ok=True)
-            raise CommandError(f'Could not create SQLite backup: {error}') from error
-
+        backup = create_database_backup()
         self.stdout.write(
             self.style.SUCCESS(
-                f'Backed up database from {source.resolve()} to {destination.resolve()}'
+                f'Backed up database from {backup.source} to {backup.destination}'
             )
         )
-
-    def _reserve_destination(self, backup_directory):
-        timestamp = timezone.localtime(timezone.now()).strftime('%Y-%m-%d_%H%M%S')
-        for suffix in range(1000):
-            filename = f'db_{timestamp}.sqlite3'
-            if suffix:
-                filename = f'db_{timestamp}_{suffix}.sqlite3'
-            destination = backup_directory / filename
-            try:
-                destination.touch(exist_ok=False)
-            except FileExistsError:
-                continue
-            return destination
-
-        raise CommandError('Could not reserve a unique backup filename.')

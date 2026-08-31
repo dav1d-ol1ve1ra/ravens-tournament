@@ -147,6 +147,20 @@ Standings support arbitrary group sizes. Ranking slots use forms such as `1A` an
 
 `ScheduleEvent` stores the timetable, including ceremonies, breaks, and free/buffer periods. Matches retain their timing fields for compatibility and link to their schedule events.
 
-## TODO: safe result reset
+## Reset tournament results
 
-A safe `python manage.py reset_results` command is planned for future development, but it is **not currently available**. Do not attempt to reset results manually during the tournament.
+Reset scores and derived progression state interactively with:
+
+```bash
+python manage.py reset_results
+```
+
+Type the exact confirmation `RESET` when prompted. For intentional non-interactive use:
+
+```bash
+python manage.py reset_results --yes
+```
+
+The command creates a database backup first, clears Match scores, returns Matches to Scheduled, restores direct Group Stage assignments, and clears derived Lower/Upper participants. It preserves teams, team metadata and logos, group assignments, Groups, Matches, ScheduleEvents, match slots/dependencies, and users.
+
+This is different from `python manage.py seed_tournament --reset`, which rebuilds development tournament structure. Do not use either reset command casually in production.
