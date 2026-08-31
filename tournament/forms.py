@@ -12,6 +12,29 @@ ALL_GROUP_ASSIGNMENT_SLOTS = tuple(
 )
 
 
+class ResetResultsForm(forms.Form):
+    confirmation = forms.CharField(
+        label='Type RESET to confirm',
+        max_length=20,
+        strip=False,
+        widget=forms.TextInput(
+            attrs={
+                'autocomplete': 'off',
+                'autocapitalize': 'characters',
+                'spellcheck': 'false',
+                'pattern': 'RESET',
+                'aria-describedby': 'reset-confirmation-help',
+            }
+        ),
+    )
+
+    def clean_confirmation(self):
+        confirmation = self.cleaned_data['confirmation']
+        if confirmation != 'RESET':
+            raise forms.ValidationError('Enter RESET exactly to continue.')
+        return confirmation
+
+
 class GroupAssignmentForm(forms.Form):
     def __init__(self, *args, locked=False, **kwargs):
         super().__init__(*args, **kwargs)

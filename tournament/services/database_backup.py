@@ -41,8 +41,11 @@ def create_database_backup(command_name='backup_database'):
         raise CommandError(f'Configured SQLite database was not found: {source}')
 
     backup_directory = Path(settings.BASE_DIR) / 'backups'
-    backup_directory.mkdir(parents=True, exist_ok=True)
-    destination = _reserve_destination(backup_directory)
+    try:
+        backup_directory.mkdir(parents=True, exist_ok=True)
+        destination = _reserve_destination(backup_directory)
+    except OSError as error:
+        raise CommandError(f'Could not prepare backup destination: {error}') from error
 
     try:
         with (

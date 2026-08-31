@@ -10,4 +10,5 @@ urlpatterns = [
     path('upper/', views.upper, name='upper'),
     path('group-assignment/', views.group_assignment, name='group_assignment'),
     path('results-admin/', views.results_admin, name='results_admin'),
+    path('reset-results/', views.reset_results, name='reset_results'),
 ]

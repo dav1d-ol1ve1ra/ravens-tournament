@@ -1,11 +1,6 @@
 from django.core.management.base import BaseCommand
-from django.db import transaction
 
-from tournament.models import Match
-from tournament.services.database_backup import create_database_backup
-from tournament.services.knockout_slots import resolve_knockout_slots
-from tournament.services.progression_slots import resolve_progression_slots
-from tournament.slot_resolution import resolve_group_stage_slots
+from tournament.services.result_reset import reset_tournament_results
 
 
 class Command(BaseCommand):
@@ -36,31 +31,16 @@ class Command(BaseCommand):
                 self.stdout.write('Reset aborted. No data was changed.')
                 return
 
-        backup = create_database_backup(command_name='reset_results')
-        self.stdout.write(f'Database backup created: {backup.destination}')
-
-        with transaction.atomic():
-            matches_reset = Match.objects.count()
-            Match.objects.update(
-                home_score=None,
-                away_score=None,
-                status=Match.Status.SCHEDULED,
-            )
-            progression_result = resolve_progression_slots()
-            knockout_result = resolve_knockout_slots()
-            direct_fields, direct_matches = resolve_group_stage_slots()
-
-        derived_fields_cleared = (
-            progression_result.stale_fields_cleared
-            + knockout_result.stale_fields_cleared
-        )
+        result = reset_tournament_results()
+        self.stdout.write(f'Database backup created: {result.backup.destination}')
         self.stdout.write(self.style.SUCCESS('Results reset successfully.'))
-        self.stdout.write(f'Matches reset: {matches_reset}')
+        self.stdout.write(f'Matches reset: {result.matches_reset}')
         self.stdout.write(
             'Group Stage direct participants restored: '
-            f'{direct_fields} field(s) across {direct_matches} match(es).'
+            f'{result.direct_fields_restored} field(s) across '
+            f'{result.direct_matches_updated} match(es).'
         )
         self.stdout.write(
             'Derived Lower/Upper participants cleared: '
-            f'{derived_fields_cleared} field(s).'
+            f'{result.derived_fields_cleared} field(s).'
         )

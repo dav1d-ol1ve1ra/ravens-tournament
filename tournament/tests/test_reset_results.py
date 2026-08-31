@@ -136,7 +136,7 @@ class ResetResultsCommandTests(TestCase):
             destination=Path('backups/db_test.sqlite3'),
         )
         with patch(
-            'tournament.management.commands.reset_results.create_database_backup',
+            'tournament.services.result_reset.create_database_backup',
             return_value=backup,
         ) as create_backup:
             call_command('reset_results', stdout=output, **options)
@@ -146,7 +146,7 @@ class ResetResultsCommandTests(TestCase):
         with (
             patch('builtins.input', return_value='reset'),
             patch(
-                'tournament.management.commands.reset_results.create_database_backup'
+                'tournament.services.result_reset.create_database_backup'
             ) as create_backup,
         ):
             output = StringIO()
@@ -177,7 +177,7 @@ class ResetResultsCommandTests(TestCase):
         with (
             patch('builtins.input', return_value='RESET'),
             patch(
-                'tournament.management.commands.reset_results.create_database_backup',
+                'tournament.services.result_reset.create_database_backup',
                 return_value=backup,
             ),
         ):

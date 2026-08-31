@@ -70,6 +70,8 @@ button, input, select { font: inherit; }
   font-weight: 800;
 }
 
+.nav-link-subtle { color: #b9c7d8; font-size: 0.86rem; }
+
 .nav-logout-form { margin: 0; }
 
 .page-shell {
@@ -368,6 +370,29 @@ button, input, select { font: inherit; }
 .assignment-errors .errorlist { margin: 0; padding-left: 1.1rem; }
 .assignment-save { width: 100%; min-height: 3rem; }
 
+/* Result reset */
+.reset-page { max-width: 720px; }
+.danger-panel { display: grid; gap: 1rem; padding: clamp(0.9rem, 4vw, 1.3rem); border: 2px solid #c43a3a; border-radius: 0.7rem; background: #fffafa; box-shadow: 0 2px 8px rgb(116 20 20 / 8%); }
+.danger-heading { display: grid; gap: 0.35rem; }
+.danger-heading h2 { margin: 0; color: #741414; font-size: 1.18rem; line-height: 1.25; }
+.danger-label { width: fit-content; padding: 0.2rem 0.48rem; border-radius: 99px; color: white; background: var(--danger); font-size: 0.72rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+.reset-effects { display: grid; gap: 0.8rem; }
+.reset-effects > div { padding: 0.75rem; border: 1px solid #e6caca; border-radius: 0.5rem; background: white; }
+.reset-effects h3 { margin: 0 0 0.4rem; color: var(--ravens-navy); font-size: 0.92rem; }
+.reset-effects ul { margin: 0; padding-left: 1.2rem; color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+.backup-notice { margin: 0; padding: 0.7rem; border-radius: 0.45rem; color: #654600; background: #fff2c7; font-size: 0.88rem; }
+.reset-form { display: grid; gap: 0.85rem; padding-top: 0.85rem; border-top: 1px solid #e6caca; }
+.reset-confirmation-field { display: grid; gap: 0.35rem; }
+.reset-confirmation-field label { color: var(--ravens-navy); font-weight: 900; }
+.reset-confirmation-field p { margin: 0; color: var(--muted); font-size: 0.8rem; }
+.reset-confirmation-field input { width: 100%; min-height: 3rem; padding: 0.6rem 0.7rem; border: 2px solid #aab6c5; border-radius: 0.45rem; color: var(--ravens-navy); background: white; font-weight: 850; letter-spacing: 0.08em; }
+.reset-confirmation-field input:focus { border-color: var(--danger); outline: 3px solid rgb(166 27 27 / 18%); }
+.danger-button { min-height: 3.1rem; padding: 0.65rem 0.9rem; border: 0; border-radius: 0.45rem; color: white; background: var(--danger); font-weight: 900; cursor: pointer; }
+.danger-button:hover, .danger-button:focus-visible { background: #821313; outline: 3px solid rgb(166 27 27 / 22%); outline-offset: 2px; }
+.reset-return-links { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.reset-return-links a { min-height: 2.6rem; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 0.4rem; color: var(--ravens-navy); background: white; font-weight: 750; text-decoration: none; }
+.reset-return-links a:hover, .reset-return-links a:focus-visible { border-color: var(--ravens-gold-dark); outline: 2px solid rgb(245 197 66 / 45%); }
+
 /* Homepage */
 .tournament-hero {
   display: grid;
@@ -449,6 +474,7 @@ button, input, select { font: inherit; }
 @media (min-width: 700px) {
   .schedule-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .result-slot-matches { grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); }
+  .reset-effects { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (min-width: 1080px) {

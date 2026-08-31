@@ -3,17 +3,24 @@ from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.management.base import CommandError
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from .forms import GROUP_ASSIGNMENT_SLOTS, GroupAssignmentForm, MatchResultForm
+from .forms import (
+    GROUP_ASSIGNMENT_SLOTS,
+    GroupAssignmentForm,
+    MatchResultForm,
+    ResetResultsForm,
+)
 from .models import Match, ScheduleEvent, Team
 from .presentation import COUNTRY_FLAGS, participant_name, team_initials
 from .services.knockout_slots import resolve_knockout_slots
 from .services.lower_standings import calculate_lower_standings
 from .services.progression_slots import resolve_progression_slots
+from .services.result_reset import reset_tournament_results
 from .services.standings import calculate_group_stage_standings
 from .slot_resolution import resolve_group_stage_slots
 
@@ -446,6 +453,32 @@ def group_assignment(request):
             'form_groups': form_groups,
             'assignments_locked': assignments_locked,
         },
+    )
+
+
+@login_required
+def reset_results(request):
+    form = ResetResultsForm(request.POST if request.method == 'POST' else None)
+    if request.method == 'POST' and form.is_valid():
+        try:
+            result = reset_tournament_results()
+        except CommandError as error:
+            messages.error(
+                request,
+                f'Reset aborted. Database backup failed: {error}',
+            )
+        else:
+            messages.success(
+                request,
+                'Tournament results reset successfully. Backup created: '
+                f'{result.backup.destination.name}',
+            )
+            return redirect('reset_results')
+
+    return render(
+        request,
+        'tournament/reset_results.html',
+        {'form': form},
     )
 
 

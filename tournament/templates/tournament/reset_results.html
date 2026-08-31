@@ -1,0 +1,86 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reset Tournament Results | Ravens Tournament</title>
+  <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="brand" href="{% url 'home' %}">Ravens Tournament</a>
+      <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
+      <a class="nav-link" href="{% url 'standings' %}">Standings</a>
+      <a class="nav-link" href="{% url 'upper' %}">Upper</a>
+      <a class="nav-link" href="{% url 'teams' %}">Teams</a>
+      <a class="nav-link" href="{% url 'results_admin' %}">Result Entry</a>
+      <a class="nav-link" href="{% url 'group_assignment' %}">Groups</a>
+      <a class="nav-link nav-link-subtle" href="{% url 'reset_results' %}" aria-current="page">Reset</a>
+      <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+      <form class="nav-logout-form" method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="nav-logout" type="submit">Log out</button>
+      </form>
+    </nav>
+  </header>
+
+  <main class="page-shell reset-page">
+    <h1 class="page-title">Reset Tournament Results</h1>
+
+    {% if messages %}
+      <ul class="messages" aria-live="polite">
+        {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
+    <section class="danger-panel" aria-labelledby="reset-warning-title">
+      <div class="danger-heading">
+        <span class="danger-label">Danger zone</span>
+        <h2 id="reset-warning-title">This permanently clears tournament results.</h2>
+      </div>
+
+      <div class="reset-effects">
+        <div>
+          <h3>This will</h3>
+          <ul>
+            <li>Clear all match scores.</li>
+            <li>Set matches back to Scheduled.</li>
+            <li>Clear Lower/Upper derived participants.</li>
+            <li>Restore Group Stage participants from current assignments.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>This will not delete</h3>
+          <ul>
+            <li>Teams, logos, countries, or group assignments.</li>
+            <li>Schedule structure or users.</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="backup-notice"><strong>A database backup is created automatically before any result is changed.</strong></p>
+
+      <form class="reset-form" method="post">
+        {% csrf_token %}
+        <div class="reset-confirmation-field">
+          <label for="{{ form.confirmation.id_for_label }}">{{ form.confirmation.label }}</label>
+          <p id="reset-confirmation-help">This is case-sensitive and must be entered exactly.</p>
+          {{ form.confirmation }}
+          {% if form.confirmation.errors %}
+            <div class="field-errors" role="alert">{{ form.confirmation.errors }}</div>
+          {% endif %}
+        </div>
+        <button class="danger-button" type="submit">Reset Tournament Results</button>
+      </form>
+    </section>
+
+    <nav class="reset-return-links" aria-label="Organiser shortcuts">
+      <a href="{% url 'results_admin' %}">Result Entry</a>
+      <a href="{% url 'standings' %}">Standings</a>
+      <a href="{% url 'schedule' %}">Schedule</a>
+    </nav>
+  </main>
+</body>
+</html>

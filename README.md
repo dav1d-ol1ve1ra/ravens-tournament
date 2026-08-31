@@ -149,7 +149,15 @@ Standings support arbitrary group sizes. Ranking slots use forms such as `1A` an
 
 ## Reset tournament results
 
-Reset scores and derived progression state interactively with:
+The preferred organiser workflow is the authenticated danger-zone page:
+
+```text
+/reset-results/
+```
+
+It requires typing `RESET`, creates a database backup, and returns to the page with confirmation. No terminal access is required.
+
+As an emergency or terminal alternative, reset scores and derived progression state interactively with:
 
 ```bash
 python manage.py reset_results
@@ -161,6 +169,6 @@ Type the exact confirmation `RESET` when prompted. For intentional non-interacti
 python manage.py reset_results --yes
 ```
 
-The command creates a database backup first, clears Match scores, returns Matches to Scheduled, restores direct Group Stage assignments, and clears derived Lower/Upper participants. It preserves teams, team metadata and logos, group assignments, Groups, Matches, ScheduleEvents, match slots/dependencies, and users.
+The web page and command use the same reset service. It creates a database backup first, clears Match scores, returns Matches to Scheduled, restores direct Group Stage assignments, and clears derived Lower/Upper participants. It preserves teams, team metadata and logos, group assignments, Groups, Matches, ScheduleEvents, match slots/dependencies, and users.
 
 This is different from `python manage.py seed_tournament --reset`, which rebuilds development tournament structure. Do not use either reset command casually in production.
