@@ -268,7 +268,12 @@ button, input, select { font: inherit; }
 .standing-card-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.45rem; align-items: baseline; }
 .standing-card-position { min-width: 1.4rem; color: var(--ravens-navy); font-size: 1rem; font-weight: 900; }
 .standing-card-team { min-width: 0; color: var(--ravens-navy); line-height: 1.2; overflow-wrap: anywhere; }
+.standing-card-team strong { overflow-wrap: anywhere; }
 .standing-card-points { padding: 0.16rem 0.38rem; border-radius: 0.3rem; color: var(--ravens-navy); background: #fff0bd; white-space: nowrap; }
+.qualification-badge { display: inline-block; margin: 0.1rem 0 0; padding: 0.1rem 0.34rem; border-radius: 99px; font-size: 0.64rem; font-weight: 850; letter-spacing: 0.04em; line-height: 1.25; text-transform: uppercase; vertical-align: middle; white-space: nowrap; }
+.qualification-upper { color: #694900; background: #fff0bd; }
+.qualification-lower { color: #46576d; background: #e6ebf0; }
+.team-name + .qualification-badge { margin-left: 0.35rem; }
 .standing-card-stats { display: flex; gap: 0.38rem 0.75rem; padding-left: 1.85rem; color: var(--muted); font-size: 0.78rem; flex-wrap: wrap; }
 .standing-card-stats span { white-space: nowrap; }
 .standing-card-stats abbr { color: var(--ravens-navy-light); font-weight: 850; text-decoration: none; }

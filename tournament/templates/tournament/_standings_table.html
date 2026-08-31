@@ -3,7 +3,12 @@
     <article class="standing-card">
       <div class="standing-card-main">
         <span class="standing-card-position">{% if row.position %}{{ row.position }}.{% else %}&mdash;{% endif %}</span>
-        <strong class="standing-card-team">{{ row.team.name }}</strong>
+        <span class="standing-card-team">
+          <strong>{{ row.team.name }}</strong>
+          {% if show_qualification_badges and row.position %}
+            <span class="qualification-badge {% if row.position <= 2 %}qualification-upper{% else %}qualification-lower{% endif %}" data-qualification="{% if row.position <= 2 %}upper{% else %}lower{% endif %}">{% if row.position <= 2 %}UPPER{% else %}LOWER{% endif %}</span>
+          {% endif %}
+        </span>
         <strong class="standing-card-points">{{ row.ranking_points }} pts</strong>
       </div>
       <div class="standing-card-stats">
@@ -46,6 +51,9 @@
           <td class="position-cell">{% if row.position %}{{ row.position }}{% else %}&mdash;{% endif %}</td>
           <td>
             <span class="team-name">{{ row.team.name }}</span>
+            {% if show_qualification_badges and row.position %}
+              <span class="qualification-badge {% if row.position <= 2 %}qualification-upper{% else %}qualification-lower{% endif %}" data-qualification="{% if row.position <= 2 %}upper{% else %}lower{% endif %}">{% if row.position <= 2 %}UPPER{% else %}LOWER{% endif %}</span>
+            {% endif %}
             {% if row.requires_manual_tiebreak %}
               <span class="manual-tiebreak">Manual tie-break required</span>
             {% endif %}

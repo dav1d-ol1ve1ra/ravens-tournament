@@ -67,6 +67,43 @@ class StandingsPageTests(TestCase):
         self.assertContains(response, 'class="standings-table"')
         self.assertContains(response, 'Ravens A', count=2)
 
+    def test_group_stage_rows_show_upper_and_lower_qualification_badges(self):
+        team_a2 = Team.objects.create(name='Team A2', group_slot='A2')
+        team_a3 = Team.objects.create(name='Team A3', group_slot='A3')
+        for home_team, away_team, home_score, away_score in (
+            (self.team_a, team_a2, 3, 0),
+            (self.team_a, team_a3, 3, 0),
+            (team_a2, team_a3, 3, 0),
+        ):
+            Match.objects.create(
+                day=1,
+                start_time=time(10),
+                court='Court 1',
+                phase='group_stage',
+                group=self.group_a,
+                home_team=home_team,
+                away_team=away_team,
+                home_score=home_score,
+                away_score=away_score,
+                status=Match.Status.FINISHED,
+            )
+
+        response = self.client.get(reverse('standings'))
+
+        self.assertContains(response, 'data-qualification="upper"', count=6)
+        self.assertContains(response, 'data-qualification="lower"', count=2)
+
+    def test_lower_league_table_does_not_show_qualification_badges(self):
+        self.create_lower_league()
+
+        response = self.client.get(reverse('standings'))
+        lower_section = response.content.decode().split(
+            '<h2 class="stage-title" id="lower-league-title">Lower League</h2>',
+            maxsplit=1,
+        )[1]
+
+        self.assertNotIn('data-qualification=', lower_section)
+
     def test_upper_bracket_is_not_rendered_as_standings(self):
         Match.objects.create(
             day=2,

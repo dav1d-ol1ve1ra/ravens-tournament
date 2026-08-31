@@ -37,7 +37,7 @@
         <section aria-labelledby="group-{{ code }}">
           <h3 class="section-title" id="group-{{ code }}">Group {{ code }}</h3>
           {% if rows %}
-            {% include "tournament/_standings_table.html" with table_label="Group "|add:code rows=rows only %}
+            {% include "tournament/_standings_table.html" with table_label="Group "|add:code rows=rows show_qualification_badges=True only %}
           {% else %}
             <p class="empty-state">No teams assigned yet.</p>
           {% endif %}
