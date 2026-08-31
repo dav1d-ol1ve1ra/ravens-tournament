@@ -25,8 +25,14 @@
     </nav>
   </header>
 
-  <main class="page-shell">
-    <h1 class="page-title">Result Entry</h1>
+  <main class="page-shell results-page">
+    <div class="results-heading">
+      <h1 class="page-title">Result Entry</h1>
+      <div class="result-summary" aria-label="Tournament result summary">
+        <span>Scheduled <strong>{{ summary_counts.scheduled }}</strong></span>
+        <span>Finished <strong>{{ summary_counts.finished }}</strong></span>
+      </div>
+    </div>
 
     {% if messages %}
       <ul class="messages">
@@ -34,60 +40,80 @@
       </ul>
     {% endif %}
 
-    <section class="filter-panel" aria-label="Match filters">
+    <section class="filter-panel result-filter-panel" aria-label="Match filters">
       <div class="filter-group">
         <span class="filter-label">Day</span>
-        <a class="filter-button {% if not selected_day %}is-active{% endif %}" href="?{% if selected_status %}status={{ selected_status }}{% endif %}">All</a>
-        <a class="filter-button {% if selected_day == '1' %}is-active{% endif %}" href="?day=1{% if selected_status %}&amp;status={{ selected_status }}{% endif %}">Day 1</a>
-        <a class="filter-button {% if selected_day == '2' %}is-active{% endif %}" href="?day=2{% if selected_status %}&amp;status={{ selected_status }}{% endif %}">Day 2</a>
+        <a class="filter-button {% if not selected_day %}is-active{% endif %}" href="?{% if not selected_status %}status=all{% else %}status={{ selected_status }}{% endif %}">All</a>
+        <a class="filter-button {% if selected_day == '1' %}is-active{% endif %}" href="?day=1&amp;status={% if selected_status %}{{ selected_status }}{% else %}all{% endif %}">Saturday</a>
+        <a class="filter-button {% if selected_day == '2' %}is-active{% endif %}" href="?day=2&amp;status={% if selected_status %}{{ selected_status }}{% else %}all{% endif %}">Sunday</a>
       </div>
       <div class="filter-group">
         <span class="filter-label">Status</span>
-        <a class="filter-button {% if not selected_status %}is-active{% endif %}" href="?{% if selected_day %}day={{ selected_day }}{% endif %}">All</a>
         <a class="filter-button {% if selected_status == 'scheduled' %}is-active{% endif %}" href="?{% if selected_day %}day={{ selected_day }}&amp;{% endif %}status=scheduled">Scheduled</a>
         <a class="filter-button {% if selected_status == 'finished' %}is-active{% endif %}" href="?{% if selected_day %}day={{ selected_day }}&amp;{% endif %}status=finished">Finished</a>
+        <a class="filter-button {% if not selected_status %}is-active{% endif %}" href="?{% if selected_day %}day={{ selected_day }}&amp;{% endif %}status=all">All</a>
       </div>
     </section>
 
-    <div class="result-list">
-      {% for match in matches %}
-        <article class="result-row {% if match.status == 'finished' %}is-finished{% endif %}">
-          <div class="result-topline">
-            <span>Day {{ match.day }}</span>
-            <span class="match-time">{{ match.start_time|time:"H:i" }}</span>
-            <span>{{ match.court }}</span>
-            {% if match.status == "finished" %}
-              <span class="match-state state-finished">Finished</span>
-            {% else %}
-              <span class="match-state state-scheduled">Scheduled</span>
-            {% endif %}
-          </div>
-          <form class="result-form" method="post">
-            {% csrf_token %}
-            <input type="hidden" name="match_id" value="{{ match.pk }}">
-            <input type="hidden" name="day" value="{{ selected_day }}">
-            <input type="hidden" name="status" value="{{ selected_status }}">
-            <div class="result-line">
-              <span class="result-team">{% if match.home_team %}{{ match.home_team.name }}{% else %}{{ match.home_slot }}{% endif %}</span>
-              {{ match.result_form.home_score }}
-              <span class="score-separator">-</span>
-              {{ match.result_form.away_score }}
-              <span class="result-team away">{% if match.away_team %}{{ match.away_team.name }}{% else %}{{ match.away_slot }}{% endif %}</span>
-            </div>
-            {% if match.result_form.errors %}
-              <div class="field-errors">{{ match.result_form.errors }}</div>
-            {% endif %}
-            <div class="result-footer">
-              <div>
-                <p class="referee-text">Ref: {% if match.referee_team %}{{ match.referee_team.name }}{% else %}{{ match.referee_slot }}{% endif %}</p>
-                {% if match.status == "finished" %}
-                  <p class="current-result">Current result: {{ match.home_score }} - {{ match.away_score }}</p>
-                {% endif %}
+    <div class="result-days">
+      {% for day in match_days %}
+        <section class="result-day" aria-labelledby="result-day-{{ day.number }}">
+          <h2 id="result-day-{{ day.number }}" class="result-day-heading">{{ day.label }}</h2>
+          {% for slot in day.time_slots %}
+            <section class="result-time-slot" aria-labelledby="result-slot-{{ day.number }}-{{ forloop.counter }}">
+              <h3 id="result-slot-{{ day.number }}-{{ forloop.counter }}" class="result-time-heading">
+                {{ slot.start_time|time:"H:i" }}{% if slot.end_time %}–{{ slot.end_time|time:"H:i" }}{% endif %}
+              </h3>
+              <div class="result-slot-matches">
+                {% for match in slot.matches %}
+                  <article class="result-row {% if match.status == 'finished' %}is-finished{% endif %}">
+                    <div class="result-topline">
+                      <span class="result-court">{{ match.display_court }}</span>
+                      <span>{{ match.display_start_time|time:"H:i" }}{% if match.display_end_time %}–{{ match.display_end_time|time:"H:i" }}{% endif %}</span>
+                      {% if match.match_code %}<span class="match-code">{{ match.match_code }}</span>{% endif %}
+                      {% if match.status == "finished" %}
+                        <span class="match-state state-finished">Finished</span>
+                      {% else %}
+                        <span class="match-state state-scheduled">Scheduled</span>
+                      {% endif %}
+                    </div>
+                    <p class="result-phase">{{ match.phase_label }}</p>
+                    <form class="result-form" method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="match_id" value="{{ match.pk }}">
+                      <input type="hidden" name="day" value="{{ selected_day }}">
+                      <input type="hidden" name="status" value="{% if selected_status %}{{ selected_status }}{% else %}all{% endif %}">
+                      <div class="result-line">
+                        <label class="result-team" for="{{ match.result_form.home_score.id_for_label }}">{{ match.home_participant }}</label>
+                        {{ match.result_form.home_score }}
+                        <span class="score-separator" aria-hidden="true">–</span>
+                        {{ match.result_form.away_score }}
+                        <label class="result-team away" for="{{ match.result_form.away_score.id_for_label }}">{{ match.away_participant }}</label>
+                      </div>
+                      {% if match.result_form.errors %}
+                        <div class="field-errors" role="alert">{{ match.result_form.errors }}</div>
+                      {% endif %}
+                      {% if not match.participants_resolved %}
+                        <p class="result-unavailable" role="status">Participants not determined yet.</p>
+                      {% endif %}
+                      <div class="result-footer">
+                        <div>
+                          <p class="referee-text">Referee: {{ match.referee_participant|default:"—" }}</p>
+                          {% if match.status == "finished" %}
+                            <p class="current-result">Current result: {{ match.home_score }}–{{ match.away_score }}</p>
+                          {% endif %}
+                        </div>
+                        {% if match.participants_resolved %}
+                          <button class="save-button" type="submit">Save Result</button>
+                        {% endif %}
+                      </div>
+                    </form>
+                  </article>
+                {% endfor %}
               </div>
-              <button class="save-button" type="submit">Save</button>
-            </div>
-          </form>
-        </article>
+            </section>
+          {% endfor %}
+        </section>
       {% empty %}
         <p class="empty-state">No matches match these filters.</p>
       {% endfor %}

@@ -1,3 +1,4 @@
+from itertools import groupby
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -450,11 +451,45 @@ def group_assignment(request):
 
 def _result_filters(source):
     day = source.get('day', '')
-    status = source.get('status', '')
+    status = source.get('status')
+    if status == 'all':
+        status = ''
+    elif status not in {Match.Status.SCHEDULED, Match.Status.FINISHED}:
+        status = Match.Status.SCHEDULED
     return (
         day if day in {'1', '2'} else '',
-        status if status in {Match.Status.SCHEDULED, Match.Status.FINISHED} else '',
+        status,
     )
+
+
+def _group_result_matches(matches):
+    days = []
+    for day_number, day_matches_iterator in groupby(
+        matches, key=lambda match: match.display_day
+    ):
+        day_matches = list(day_matches_iterator)
+        time_slots = []
+        for time_key, slot_matches_iterator in groupby(
+            day_matches,
+            key=lambda match: (match.display_start_time, match.display_end_time),
+        ):
+            time_slots.append(
+                {
+                    'start_time': time_key[0],
+                    'end_time': time_key[1],
+                    'matches': list(slot_matches_iterator),
+                }
+            )
+        days.append(
+            {
+                'number': day_number,
+                'label': {1: 'Saturday', 2: 'Sunday'}.get(
+                    day_number, f'Day {day_number}'
+                ),
+                'time_slots': time_slots,
+            }
+        )
+    return days
 
 
 @login_required
@@ -469,24 +504,45 @@ def results_admin(request):
         submitted_match = get_object_or_404(Match, pk=request.POST.get('match_id'))
         submitted_form = MatchResultForm(request.POST, instance=submitted_match)
         if submitted_form.is_valid():
+            home_name = participant_name(submitted_match, 'home')
+            away_name = participant_name(submitted_match, 'away')
+            progression_updates = 0
             with transaction.atomic():
                 match = submitted_form.save(commit=False)
                 match.status = Match.Status.FINISHED
                 match.save(update_fields=['home_score', 'away_score', 'status'])
                 if match.phase == 'group_stage':
-                    resolve_progression_slots()
+                    progression_updates = resolve_progression_slots().fields_updated
                 elif match.phase.startswith('upper_'):
-                    resolve_knockout_slots()
+                    progression_updates = resolve_knockout_slots().fields_updated
 
-            messages.success(request, 'Result saved successfully.')
+            match_label = match.match_code or f'Match {match.pk}'
+            messages.success(
+                request,
+                f'{match_label} saved: {home_name} {match.home_score}–'
+                f'{match.away_score} {away_name}',
+            )
+            if progression_updates:
+                messages.info(
+                    request,
+                    f'Tournament progression updated {progression_updates} '
+                    'participant field(s).',
+                )
             query = {
                 key: value
                 for key, value in (
                     ('day', selected_day),
-                    ('status', selected_status),
+                    (
+                        'status',
+                        selected_status
+                        if selected_status != Match.Status.SCHEDULED
+                        else '',
+                    ),
                 )
                 if value
             }
+            if selected_status == '':
+                query['status'] = 'all'
             redirect_url = reverse('results_admin')
             if query:
                 redirect_url = f'{redirect_url}?{urlencode(query)}'
@@ -494,8 +550,16 @@ def results_admin(request):
 
         messages.error(request, 'Please correct the score values and try again.')
 
+    summary_counts = {
+        Match.Status.SCHEDULED: Match.objects.filter(
+            status=Match.Status.SCHEDULED
+        ).count(),
+        Match.Status.FINISHED: Match.objects.filter(
+            status=Match.Status.FINISHED
+        ).count(),
+    }
     matches = Match.objects.select_related(
-        'home_team', 'away_team', 'referee_team'
+        'schedule_event', 'home_team', 'away_team', 'referee_team'
     ).order_by('day', 'start_time', 'court')
     if selected_day:
         matches = matches.filter(day=selected_day)
@@ -504,17 +568,47 @@ def results_admin(request):
 
     matches = list(matches)
     for match in matches:
+        schedule_event = match.schedule_event
+        match.display_day = schedule_event.day if schedule_event else match.day
+        match.display_start_time = (
+            schedule_event.start_time if schedule_event else match.start_time
+        )
+        match.display_end_time = schedule_event.end_time if schedule_event else None
+        match.display_court = schedule_event.court if schedule_event else match.court
+        match.phase_label = SCHEDULE_PHASE_LABELS.get(match.phase, match.phase)
+        match.home_participant = participant_name(match, 'home')
+        match.away_participant = participant_name(match, 'away')
+        match.referee_participant = participant_name(match, 'referee')
+        match.participants_resolved = bool(match.home_team_id and match.away_team_id)
         if submitted_match and match.pk == submitted_match.pk:
             match.result_form = submitted_form
         else:
             match.result_form = MatchResultForm(instance=match)
+        match.result_form.fields['home_score'].widget.attrs['id'] = (
+            f'id_match_{match.pk}_home_score'
+        )
+        match.result_form.fields['away_score'].widget.attrs['id'] = (
+            f'id_match_{match.pk}_away_score'
+        )
+        if not match.participants_resolved:
+            for field in match.result_form.fields.values():
+                field.disabled = True
+
+    matches.sort(
+        key=lambda match: (
+            match.display_day,
+            match.display_start_time,
+            match.display_court,
+        )
+    )
 
     return render(
         request,
         'tournament/results_admin.html',
         {
-            'matches': matches,
+            'match_days': _group_result_matches(matches),
             'selected_day': selected_day,
             'selected_status': selected_status,
+            'summary_counts': summary_counts,
         },
     )

@@ -73,6 +73,8 @@ class MatchResultForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        if self.instance.home_team_id is None or self.instance.away_team_id is None:
+            raise forms.ValidationError('Participants not determined yet.')
         home_score = cleaned_data.get('home_score')
         away_score = cleaned_data.get('away_score')
         if home_score is not None and away_score is not None:

@@ -314,11 +314,28 @@ button, input, select { font: inherit; }
 .messages { margin: 0 0 1rem; padding: 0; list-style: none; }
 .messages li { padding: 0.75rem 0.85rem; border-radius: 0.5rem; font-weight: 700; }
 .messages .success { color: #075b38; background: #dff6e8; }
+.messages .info { color: #123f68; background: #e5f1fb; }
 .messages .error { color: var(--danger); background: #fee7e7; }
 
-.result-list { display: grid; gap: 0.55rem; }
+.results-page { max-width: 1180px; }
+.results-heading { display: flex; gap: 0.7rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.results-heading .page-title { margin-bottom: 0.65rem; }
+.result-summary { display: flex; gap: 0.4rem; margin-bottom: 0.65rem; }
+.result-summary span { padding: 0.4rem 0.58rem; border: 1px solid var(--border); border-radius: 99px; color: var(--muted); background: white; font-size: 0.78rem; font-weight: 750; }
+.result-summary strong { margin-left: 0.2rem; color: var(--ravens-navy); font-size: 0.9rem; }
+.result-filter-panel { gap: 0.45rem; padding: 0.55rem 0.65rem; }
+.result-filter-panel .filter-button { min-height: 2.2rem; padding: 0.4rem 0.65rem; }
+.result-days, .result-day, .result-time-slot { display: grid; gap: 0.65rem; }
+.result-day + .result-day { margin-top: 0.7rem; }
+.result-day-heading { margin: 0; padding-bottom: 0.35rem; border-bottom: 3px solid var(--ravens-gold); color: var(--ravens-navy); font-size: 1.25rem; }
+.result-time-heading { margin: 0; color: var(--ravens-navy); font-size: 1rem; font-variant-numeric: tabular-nums; }
+.result-slot-matches { display: grid; gap: 0.55rem; }
 .result-row { padding: 0.8rem; border: 1px solid var(--border); border-left: 4px solid var(--ravens-gold); border-radius: 0.55rem; background: var(--card-bg); }
-.result-row.is-finished { border-left-color: #8b98a8; background: #f9fafb; }
+.result-row.is-finished { border-left-color: #8b98a8; background: #f6f7f9; opacity: 0.88; }
+.result-topline { display: flex; gap: 0.45rem; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 0.76rem; font-weight: 750; }
+.result-court { color: var(--ravens-navy); font-size: 0.86rem; font-weight: 900; }
+.result-topline .match-state { margin-left: auto; }
+.result-phase { margin: 0.18rem 0 0.55rem; color: var(--ravens-navy-light); font-size: 0.72rem; font-weight: 850; letter-spacing: 0.05em; text-transform: uppercase; }
 .result-form { display: grid; gap: 0.55rem; }
 .result-line { display: grid; grid-template-columns: minmax(0, 1fr) 3.3rem auto 3.3rem minmax(0, 1fr); gap: 0.45rem; align-items: center; }
 .result-team { overflow-wrap: anywhere; font-weight: 800; }
@@ -332,6 +349,9 @@ button, input, select { font: inherit; }
 .save-button { min-height: 2.7rem; padding: 0.55rem 0.85rem; border: 0; border-radius: 0.42rem; color: var(--ravens-navy); background: var(--ravens-gold); font-weight: 850; cursor: pointer; white-space: nowrap; }
 .save-button:hover, .save-button:focus-visible { background: #ffd95f; outline: 2px solid var(--ravens-navy-light); outline-offset: 1px; }
 .field-errors { margin: 0; padding-left: 1.1rem; color: var(--danger); font-size: 0.82rem; }
+.field-errors .errorlist { margin: 0.2rem 0; }
+.result-unavailable { margin: 0; padding: 0.45rem 0.55rem; border-radius: 0.4rem; color: #654600; background: #fff5cf; font-size: 0.82rem; font-weight: 750; }
+.result-line input:disabled { border-color: #cbd2da; color: #687482; background: #edf0f3; }
 
 /* Group assignment */
 .group-assignment-page { max-width: 760px; }
@@ -412,6 +432,8 @@ button, input, select { font: inherit; }
   .court-event, .court-match { min-height: 5.7rem; }
   .standings-mobile { display: grid; gap: 0.5rem; }
   .standings-desktop { display: none; }
+  .result-filter-panel .filter-label { flex-basis: 100%; }
+  .result-filter-panel .filter-group { gap: 0.3rem; }
   .result-line { grid-template-columns: minmax(0, 1fr) 3rem auto 3rem minmax(0, 1fr); gap: 0.3rem; }
   .result-team { font-size: 0.88rem; }
   .result-footer { align-items: flex-end; }
@@ -426,6 +448,7 @@ button, input, select { font: inherit; }
 
 @media (min-width: 700px) {
   .schedule-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .result-slot-matches { grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); }
 }
 
 @media (min-width: 1080px) {

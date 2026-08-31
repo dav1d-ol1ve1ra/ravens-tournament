@@ -29,6 +29,14 @@ class ResultsAdminTests(TestCase):
         return Match.objects.create(**values)
 
     def post_result(self, match, home_score, away_score):
+        if not match.home_team_id or not match.away_team_id:
+            match.home_team = match.home_team or Team.objects.create(
+                name=f'Home team {match.pk}'
+            )
+            match.away_team = match.away_team or Team.objects.create(
+                name=f'Away team {match.pk}'
+            )
+            match.save(update_fields=['home_team', 'away_team'])
         return self.client.post(
             reverse('results_admin'),
             {
@@ -64,6 +72,109 @@ class ResultsAdminTests(TestCase):
         match.refresh_from_db()
 
         self.assertEqual(match.status, Match.Status.FINISHED)
+
+    def test_scheduled_matches_are_the_default_view(self):
+        self.client.force_login(self.user)
+        scheduled = self.create_match(match_code='GS-A-01')
+        finished = self.create_match(
+            start_time=time(11, 5),
+            match_code='GS-A-02',
+            status=Match.Status.FINISHED,
+            home_score=2,
+            away_score=1,
+        )
+
+        response = self.client.get(reverse('results_admin'))
+
+        self.assertContains(response, scheduled.match_code)
+        self.assertNotContains(response, finished.match_code)
+        self.assertEqual(response.context['selected_status'], Match.Status.SCHEDULED)
+
+    def test_finished_matches_remain_editable(self):
+        self.client.force_login(self.user)
+        match = self.create_match(
+            match_code='GS-A-01',
+            home_score=2,
+            away_score=1,
+            status=Match.Status.FINISHED,
+        )
+        self.post_result(match, 2, 1)
+
+        response = self.client.get(reverse('results_admin'), {'status': 'finished'})
+
+        self.assertContains(response, 'Finished')
+        self.assertContains(response, 'Save Result')
+        self.assertContains(response, 'value="2"', html=False)
+
+    def test_unresolved_participants_cannot_receive_result(self):
+        self.client.force_login(self.user)
+        match = self.create_match(match_code='UB-01')
+
+        response = self.client.post(
+            reverse('results_admin'),
+            {'match_id': match.pk, 'home_score': 3, 'away_score': 1},
+        )
+        match.refresh_from_db()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Participants not determined yet.')
+        self.assertEqual(match.status, Match.Status.SCHEDULED)
+        self.assertIsNone(match.home_score)
+        self.assertIsNone(match.away_score)
+
+    def test_incomplete_score_submission_is_rejected(self):
+        self.client.force_login(self.user)
+        match = self.create_match()
+        match.home_team = Team.objects.create(name='Home')
+        match.away_team = Team.objects.create(name='Away')
+        match.save(update_fields=['home_team', 'away_team'])
+
+        response = self.client.post(
+            reverse('results_admin'),
+            {'match_id': match.pk, 'home_score': 3, 'away_score': ''},
+        )
+        match.refresh_from_db()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'This field is required.')
+        self.assertEqual(match.status, Match.Status.SCHEDULED)
+
+    def test_success_feedback_identifies_match_and_result(self):
+        self.client.force_login(self.user)
+        home = Team.objects.create(name='Ravens A')
+        away = Team.objects.create(name='London Saints')
+        match = self.create_match(
+            match_code='UB-01',
+            phase='upper_semifinal',
+            home_team=home,
+            away_team=away,
+        )
+
+        response = self.client.post(
+            reverse('results_admin'),
+            {'match_id': match.pk, 'home_score': 7, 'away_score': 5},
+            follow=True,
+        )
+
+        self.assertContains(
+            response,
+            'UB-01 saved: Ravens A 7–5 London Saints',
+        )
+
+    def test_summary_counts_scheduled_and_finished_matches(self):
+        self.client.force_login(self.user)
+        self.create_match()
+        self.create_match(
+            start_time=time(11, 5),
+            status=Match.Status.FINISHED,
+            home_score=1,
+            away_score=0,
+        )
+
+        response = self.client.get(reverse('results_admin'))
+
+        self.assertEqual(response.context['summary_counts']['scheduled'], 1)
+        self.assertEqual(response.context['summary_counts']['finished'], 1)
 
     def test_finished_result_can_be_corrected(self):
         self.client.force_login(self.user)
