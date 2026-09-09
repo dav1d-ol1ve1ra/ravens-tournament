@@ -7,8 +7,10 @@ from django.core.management.base import CommandError
 from django.contrib.auth import get_user_model
 from django.db.models import F
 from django.test import TestCase
+from django.urls import reverse
 
 from tournament.models import Group, Match, ScheduleEvent, Team
+from tournament.services.knockout_slots import resolve_knockout_slots
 from tournament.services.progression_slots import resolve_progression_slots
 
 
@@ -95,13 +97,13 @@ class ConfirmedTournamentSeedTests(TestCase):
             {
                 'LL-01': ('4A', '5A'),
                 'LL-02': ('3A', '3B'),
-                'LL-03': ('4A', '3A'),
+                'LL-03': ('3A', '4A'),
                 'LL-04': ('5A', '4B'),
                 'LL-05': ('4A', '3B'),
                 'LL-06': ('3A', '4B'),
                 'LL-07': ('4A', '4B'),
                 'LL-08': ('5A', '3B'),
-                'LL-09': ('5A', '3A'),
+                'LL-09': ('3A', '5A'),
                 'LL-10': ('3B', '4B'),
             },
         )
@@ -138,6 +140,175 @@ class ConfirmedTournamentSeedTests(TestCase):
                         event_type=event_type,
                     ).exists()
                 )
+
+    def test_final_saturday_schedule_includes_the_delayed_lower_match(self):
+        saturday_lower = Match.objects.get(match_code='LL-01')
+
+        self.assertEqual(
+            (
+                saturday_lower.day,
+                saturday_lower.start_time,
+                saturday_lower.schedule_event.end_time,
+                saturday_lower.court,
+                saturday_lower.home_slot,
+                saturday_lower.away_slot,
+                saturday_lower.referee_slot,
+            ),
+            (1, time(17, 10), time(18), 'Court 2', '4A', '5A', 'A3'),
+        )
+        self.assertTrue(
+            Match.objects.filter(
+                match_code='GS-B-06',
+                day=1,
+                start_time=time(16, 55),
+                court='Court 1',
+                referee_slot='B1',
+            ).exists()
+        )
+        self.assertTrue(
+            ScheduleEvent.objects.filter(
+                day=1,
+                start_time=time(16, 55),
+                end_time=time(18),
+                court='Court 3',
+                event_type=ScheduleEvent.EventType.FREE,
+                label='Free / Buffer',
+            ).exists()
+        )
+
+    def test_final_saturday_match_schedule(self):
+        expected = {
+            'GS-A-01': (time(10), 'Court 1', 'A1', 'A2', 'B3'),
+            'GS-A-02': (time(10), 'Court 2', 'A3', 'A4', 'B4'),
+            'GS-B-01': (time(10), 'Court 3', 'B1', 'B2', 'A5'),
+            'GS-A-03': (time(11, 5), 'Court 1', 'A1', 'A3', 'B1'),
+            'GS-A-04': (time(11, 5), 'Court 2', 'A2', 'A5', 'B2'),
+            'GS-B-02': (time(11, 5), 'Court 3', 'B3', 'B4', 'A4'),
+            'GS-A-05': (time(12, 10), 'Court 1', 'A1', 'A4', 'B2'),
+            'GS-A-06': (time(12, 10), 'Court 2', 'A3', 'A5', 'B4'),
+            'GS-B-03': (time(12, 10), 'Court 3', 'B1', 'B3', 'A2'),
+            'GS-A-07': (time(14, 45), 'Court 1', 'A2', 'A4', 'B1'),
+            'GS-A-08': (time(14, 45), 'Court 2', 'A1', 'A5', 'B3'),
+            'GS-B-04': (time(14, 45), 'Court 3', 'B2', 'B4', 'A3'),
+            'GS-A-09': (time(15, 50), 'Court 1', 'A2', 'A3', 'B2'),
+            'GS-A-10': (time(15, 50), 'Court 2', 'A4', 'A5', 'B3'),
+            'GS-B-05': (time(15, 50), 'Court 3', 'B1', 'B4', 'A1'),
+            'GS-B-06': (time(16, 55), 'Court 1', 'B2', 'B3', 'B1'),
+            'LL-01': (time(17, 10), 'Court 2', '4A', '5A', 'A3'),
+        }
+
+        actual = {
+            match.match_code: (
+                match.start_time,
+                match.court,
+                match.home_slot,
+                match.away_slot,
+                match.referee_slot,
+            )
+            for match in Match.objects.filter(day=1)
+        }
+
+        self.assertEqual(actual, expected)
+
+    def test_final_sunday_lower_schedule(self):
+        expected = {
+            'LL-03': (time(9), time(10, 5), 'Court 1', '3A', '4A', '2A'),
+            'LL-08': (time(9), time(10, 5), 'Court 2', '5A', '3B', '1B'),
+            'LL-09': (time(10, 5), time(11, 10), 'Court 1', '3A', '5A', '1A'),
+            'LL-10': (time(10, 5), time(11, 10), 'Court 2', '3B', '4B', '4A'),
+            'LL-02': (time(11, 10), time(12, 10), 'Court 1', '3A', '3B', '1A'),
+            'LL-07': (time(11, 10), time(12, 10), 'Court 2', '4A', '4B', '5A'),
+            'LL-05': (time(13, 35), time(14, 35), 'Court 1', '4A', '3B', 'W-UB-01'),
+            'LL-06': (time(13, 35), time(14, 35), 'Court 2', '3A', '4B', 'W-UB-02'),
+            'LL-04': (time(14, 35), time(15, 40), 'Court 1', '5A', '4B', '3B'),
+        }
+
+        for code, details in expected.items():
+            with self.subTest(code=code):
+                match = Match.objects.select_related('schedule_event').get(
+                    match_code=code
+                )
+                self.assertEqual(
+                    (
+                        match.start_time,
+                        match.schedule_event.end_time,
+                        match.court,
+                        match.home_slot,
+                        match.away_slot,
+                        match.referee_slot,
+                    ),
+                    details,
+                )
+
+    def test_final_upper_times_courts_and_referees(self):
+        expected = {
+            'UB-01': (time(9), time(10, 5), 'Court 3', '4B'),
+            'UB-02': (time(10, 5), time(11, 10), 'Court 3', '2B'),
+            'UB-03': (time(13, 35), time(14, 35), 'Court 3', '5A'),
+            'UB-04': (time(14, 35), time(15, 40), 'Court 3', '4A'),
+        }
+
+        for code, details in expected.items():
+            with self.subTest(code=code):
+                match = Match.objects.select_related('schedule_event').get(
+                    match_code=code
+                )
+                self.assertEqual(
+                    (
+                        match.start_time,
+                        match.schedule_event.end_time,
+                        match.court,
+                        match.referee_slot,
+                    ),
+                    details,
+                )
+
+    def test_semifinal_winners_resolve_outcome_dependent_referees(self):
+        teams = list(Team.objects.order_by('pk')[:4])
+        ub_01 = Match.objects.get(match_code='UB-01')
+        ub_01.home_team, ub_01.away_team = teams[0], teams[1]
+        ub_01.home_score, ub_01.away_score = 7, 4
+        ub_01.status = Match.Status.FINISHED
+        ub_01.save(
+            update_fields=[
+                'home_team', 'away_team', 'home_score', 'away_score', 'status'
+            ]
+        )
+        ub_02 = Match.objects.get(match_code='UB-02')
+        ub_02.home_team, ub_02.away_team = teams[2], teams[3]
+        ub_02.home_score, ub_02.away_score = 3, 6
+        ub_02.status = Match.Status.FINISHED
+        ub_02.save(
+            update_fields=[
+                'home_team', 'away_team', 'home_score', 'away_score', 'status'
+            ]
+        )
+
+        resolve_knockout_slots()
+
+        self.assertEqual(Match.objects.get(match_code='LL-05').referee_team, teams[0])
+        self.assertEqual(Match.objects.get(match_code='LL-06').referee_team, teams[3])
+
+    def test_public_schedule_keeps_overlapping_saturday_rows_distinct(self):
+        list_response = self.client.get(reverse('schedule'))
+        courts_response = self.client.get(f'{reverse("schedule")}?view=courts')
+
+        self.assertContains(list_response, '16:55&ndash;18:00', html=False)
+        self.assertContains(list_response, '17:10&ndash;18:00', html=False)
+        saturday = next(
+            day for day in courts_response.context['court_days'] if day['number'] == 1
+        )
+        late_rows = {
+            row['start_time']: row
+            for row in saturday['rows']
+            if row['start_time'] in (time(16, 55), time(17, 10))
+        }
+
+        self.assertEqual(set(late_rows), {time(16, 55), time(17, 10)})
+        self.assertEqual(late_rows[time(16, 55)]['cells'][0].match.match_code, 'GS-B-06')
+        self.assertIsNone(late_rows[time(16, 55)]['cells'][1])
+        self.assertEqual(late_rows[time(17, 10)]['cells'][1].match.match_code, 'LL-01')
+        self.assertIsNone(late_rows[time(17, 10)]['cells'][0])
 
     def test_non_match_events_do_not_create_matches(self):
         expected_counts = {

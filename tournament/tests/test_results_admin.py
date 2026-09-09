@@ -312,6 +312,28 @@ class ResultsAdminTests(TestCase):
 
         self.assertEqual(final.home_team, teams[0])
 
+    def test_result_entry_resolves_outcome_dependent_referee_slot(self):
+        self.client.force_login(self.user)
+        teams = [Team.objects.create(name=f'Team {index}') for index in range(1, 3)]
+        semifinal = self.create_match(
+            day=2,
+            phase='upper_semifinal',
+            match_code='UB-01',
+            home_team=teams[0],
+            away_team=teams[1],
+        )
+        lower_match = self.create_match(
+            day=2,
+            phase='lower_league',
+            match_code='LL-05',
+            referee_slot='W-UB-01',
+        )
+
+        self.post_result(semifinal, 8, 5)
+        lower_match.refresh_from_db()
+
+        self.assertEqual(lower_match.referee_team, teams[0])
+
     def test_tied_upper_result_is_rejected(self):
         self.client.force_login(self.user)
         teams = [Team.objects.create(name=f'Team {index}') for index in range(1, 3)]
