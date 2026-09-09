@@ -366,28 +366,7 @@ def schedule(request):
     )
 
 
-def standings(request):
-    calculated_groups = calculate_group_stage_standings()
-    lower_standings = calculate_lower_standings()
-
-    for rows in (*calculated_groups.values(), lower_standings.rows):
-        for row in rows:
-            row.team.initials = team_initials(row.team)
-
-    return render(
-        request,
-        'tournament/standings.html',
-        {
-            'standings_by_group': {
-                'A': calculated_groups.get('A', []),
-                'B': calculated_groups.get('B', []),
-            },
-            'lower_standings': lower_standings,
-        },
-    )
-
-
-def upper(request):
+def _build_upper_sections():
     matches_by_code = {
         match.match_code: match
         for match in Match.objects.filter(
@@ -421,6 +400,34 @@ def upper(request):
             match.display_court = schedule_event.court if schedule_event else match.court
             matches.append(match)
         sections.append({'title': title, 'matches': matches, 'is_final': title == 'Final'})
+
+    return sections
+
+
+def standings(request):
+    calculated_groups = calculate_group_stage_standings()
+    lower_standings = calculate_lower_standings()
+
+    for rows in (*calculated_groups.values(), lower_standings.rows):
+        for row in rows:
+            row.team.initials = team_initials(row.team)
+
+    return render(
+        request,
+        'tournament/standings.html',
+        {
+            'standings_by_group': {
+                'A': calculated_groups.get('A', []),
+                'B': calculated_groups.get('B', []),
+            },
+            'upper_sections': _build_upper_sections(),
+            'lower_standings': lower_standings,
+        },
+    )
+
+
+def upper(request):
+    sections = _build_upper_sections()
 
     return render(request, 'tournament/upper.html', {'upper_sections': sections})
 

@@ -268,6 +268,9 @@ fieldset { min-inline-size: 0; }
 .standings-stage { margin-top: 1.6rem; }
 .standings-stage:first-of-type { margin-top: 0; }
 .stage-title { margin: 0 0 0.85rem; color: var(--ravens-navy); font-size: clamp(1.25rem, 3vw, 1.65rem); }
+.final-stage { padding-top: 1.25rem; border-top: 2px solid var(--ravens-gold); }
+.final-stage-section + .final-stage-section { margin-top: 1.5rem; }
+.final-stage-section > .section-title { margin-top: 0; }
 .standings-scroll-hint { display: none; margin: 0 0 0.4rem; color: var(--muted); font-size: 0.78rem; }
 .standings-mobile { display: none; }
 .standings-wrap {

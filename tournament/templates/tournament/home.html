@@ -13,7 +13,6 @@
       <a class="brand" href="{% url 'home' %}" aria-current="page">Ravens Tournament</a>
       <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
       <a class="nav-link" href="{% url 'standings' %}">Standings</a>
-      <a class="nav-link" href="{% url 'upper' %}">Upper</a>
       <a class="nav-link" href="{% url 'final_ranking' %}">Ranking</a>
       <a class="nav-link" href="{% url 'teams' %}">Teams</a>
       {% if user.is_authenticated %}
@@ -56,7 +55,6 @@
       <nav class="quick-links" aria-label="Tournament pages">
         <a data-home-shortcut="schedule" href="{% url 'schedule' %}"><strong>Schedule</strong><span>Fixtures and results</span></a>
         <a data-home-shortcut="standings" href="{% url 'standings' %}"><strong>Standings</strong><span>Group rankings</span></a>
-        <a data-home-shortcut="upper" href="{% url 'upper' %}"><strong>Upper Bracket</strong><span>Knockout matches</span></a>
         <a data-home-shortcut="final-ranking" href="{% url 'final_ranking' %}"><strong>Ranking</strong><span>1st–9th classification</span></a>
         <a data-home-shortcut="teams" href="{% url 'teams' %}"><strong>Teams</strong><span>Meet the competitors</span></a>
       </nav>

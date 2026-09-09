@@ -145,8 +145,7 @@ class UpperPageTests(TestCase):
             count=2,
         )
 
-    def test_public_navigation_contains_upper(self):
+    def test_public_navigation_does_not_contain_standalone_upper_link(self):
         response = self.client.get(reverse('schedule'))
 
-        self.assertContains(response, 'href="/upper/"')
-        self.assertContains(response, '>Upper<')
+        self.assertNotContains(response, 'href="/upper/"')

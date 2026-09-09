@@ -49,7 +49,6 @@ class PublicPageTests(TestCase):
         expected_shortcuts = {
             'schedule': reverse('schedule'),
             'standings': reverse('standings'),
-            'upper': reverse('upper'),
             'final-ranking': reverse('final_ranking'),
             'teams': reverse('teams'),
         }
@@ -58,6 +57,7 @@ class PublicPageTests(TestCase):
                 response,
                 f'data-home-shortcut="{shortcut}" href="{url}"',
             )
+        self.assertNotContains(response, 'data-home-shortcut="upper"')
 
     def test_homepage_organiser_shortcuts_require_authentication(self):
         public_response = self.client.get(reverse('home'))

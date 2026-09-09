@@ -117,27 +117,63 @@ class StandingsPageTests(TestCase):
 
         response = self.client.get(reverse('standings'))
         lower_section = response.content.decode().split(
-            '<h2 class="stage-title" id="lower-league-title">Lower League</h2>',
+            '<h3 class="section-title" id="lower-league-title">Lower League</h3>',
             maxsplit=1,
         )[1]
 
         self.assertNotIn('data-qualification=', lower_section)
 
-    def test_upper_bracket_is_not_rendered_as_standings(self):
+    def test_final_stage_contains_upper_bracket_and_lower_league(self):
+        upper_matches = (
+            ('UB-01', 'upper_semifinal', '1A', '2B'),
+            ('UB-02', 'upper_semifinal', '1B', '2A'),
+            ('UB-03', 'upper_third_place', 'L-UB-01', 'L-UB-02'),
+            ('UB-04', 'upper_final', 'W-UB-01', 'W-UB-02'),
+        )
+        for code, phase, home_slot, away_slot in upper_matches:
+            Match.objects.create(
+                day=2,
+                start_time=time(10),
+                court='Court 1',
+                match_code=code,
+                phase=phase,
+                home_slot=home_slot,
+                away_slot=away_slot,
+            )
+
+        response = self.client.get(reverse('standings'))
+
+        self.assertContains(response, 'Final Stage')
+        self.assertContains(response, 'Upper Bracket')
+        self.assertContains(response, 'Lower League')
+        for code in ('UB-01', 'UB-02', 'UB-03', 'UB-04'):
+            self.assertContains(response, code)
+        for label in (
+            '1st Group A',
+            '2nd Group B',
+            'Loser UB-01',
+            'Winner UB-02',
+        ):
+            self.assertContains(response, label)
+
+    def test_finished_upper_score_styling_is_reused_in_standings(self):
         Match.objects.create(
             day=2,
             start_time=time(10),
-            court='Court 1',
+            court='Court 3',
             match_code='UB-01',
             phase='upper_semifinal',
-            home_slot='1A',
-            away_slot='2B',
+            home_team=self.team_a,
+            away_team=self.team_b,
+            home_score=8,
+            away_score=5,
+            status=Match.Status.FINISHED,
         )
 
         response = self.client.get(reverse('standings'))
 
-        self.assertNotContains(response, 'Upper Bracket')
-        self.assertNotContains(response, 'UB-01')
+        self.assertContains(response, 'class="score-badge score-win">8</span>')
+        self.assertContains(response, 'class="score-badge score-loss">5</span>')
 
     def test_unresolved_lower_participants_show_waiting_message(self):
         response = self.client.get(reverse('standings'))
