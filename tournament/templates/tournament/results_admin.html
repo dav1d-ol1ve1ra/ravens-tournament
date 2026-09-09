@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Result Entry | Ravens Tournament</title>
   <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+  <script src="{% static 'tournament/filter-history.js' %}" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -43,7 +44,7 @@
       </ul>
     {% endif %}
 
-    <section class="filter-panel result-filter-panel" aria-label="Match filters">
+    <section class="filter-panel result-filter-panel" aria-label="Match filters" data-replace-history-links>
       <div class="filter-group">
         <span class="filter-label">Day</span>
         <a class="filter-button {% if not selected_day %}is-active{% endif %}" href="?{% if not selected_status %}status=all{% else %}status={{ selected_status }}{% endif %}">All</a>

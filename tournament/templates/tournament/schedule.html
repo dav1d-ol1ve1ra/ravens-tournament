@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Schedule | Ravens Tournament</title>
   <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
+  <script src="{% static 'tournament/filter-history.js' %}" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -33,7 +34,7 @@
   <main class="page-shell">
     <h1 class="page-title">Schedule</h1>
 
-    <section class="filter-panel schedule-filter-panel" aria-label="Schedule filters">
+    <section class="filter-panel schedule-filter-panel" aria-label="Schedule filters" data-replace-history-links>
       <div class="filter-group schedule-view-group">
         <span class="filter-label">View</span>
         <a class="filter-button {% if selected_view == 'list' %}is-active{% endif %}" href="{{ list_view_url }}"{% if selected_view == 'list' %} aria-current="page"{% endif %}>List</a>

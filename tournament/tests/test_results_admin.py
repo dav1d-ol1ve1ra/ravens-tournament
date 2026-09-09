@@ -90,6 +90,18 @@ class ResultsAdminTests(TestCase):
         self.assertNotContains(response, finished.match_code)
         self.assertEqual(response.context['selected_status'], Match.Status.SCHEDULED)
 
+    def test_filter_controls_use_progressive_history_replacement(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse('results_admin'),
+            {'day': '1', 'status': 'scheduled'},
+        )
+
+        self.assertContains(response, 'data-replace-history-links')
+        self.assertContains(response, 'tournament/filter-history.js')
+        self.assertContains(response, '?day=1&amp;status=finished')
+
     def test_finished_matches_remain_editable(self):
         self.client.force_login(self.user)
         match = self.create_match(

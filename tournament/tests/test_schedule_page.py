@@ -250,6 +250,15 @@ class SchedulePageTests(TestCase):
         self.assertContains(explicit_response, 'class="schedule-list"')
         self.assertContains(default_response, '?view=courts')
 
+    def test_filter_controls_use_progressive_history_replacement(self):
+        response = self.client.get(
+            f'{reverse("schedule")}?view=courts&day=1&status=scheduled'
+        )
+
+        self.assertContains(response, 'data-replace-history-links')
+        self.assertContains(response, 'tournament/filter-history.js')
+        self.assertContains(response, 'view=courts&amp;day=1&amp;status=finished')
+
     def test_invalid_view_falls_back_to_list(self):
         response = self.client.get(f'{reverse("schedule")}?view=invalid')
 
