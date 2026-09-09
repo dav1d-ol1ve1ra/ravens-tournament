@@ -434,7 +434,14 @@ def final_ranking(request):
     return render(
         request,
         'tournament/final_ranking.html',
-        {'final_placements': ranking.placements},
+        {
+            'final_placements': ranking.placements,
+            'ranking_is_final': all(
+                placement.team is not None
+                and not placement.requires_manual_tiebreak
+                for placement in ranking.placements
+            ),
+        },
     )
 
 

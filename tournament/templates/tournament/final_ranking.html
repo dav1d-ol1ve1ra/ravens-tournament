@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Final Ranking | Ravens Tournament</title>
+  <title>{% if ranking_is_final %}Final{% else %}Current{% endif %} Ranking | Ravens Tournament</title>
   <link rel="stylesheet" href="{% static 'tournament/site.css' %}">
 </head>
 <body>
@@ -14,7 +14,7 @@
       <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
       <a class="nav-link" href="{% url 'standings' %}">Standings</a>
       <a class="nav-link" href="{% url 'upper' %}">Upper</a>
-      <a class="nav-link" href="{% url 'final_ranking' %}" aria-current="page">Final Ranking</a>
+      <a class="nav-link" href="{% url 'final_ranking' %}" aria-current="page">Ranking</a>
       <a class="nav-link" href="{% url 'teams' %}">Teams</a>
       {% if user.is_authenticated %}
         <a class="nav-link" href="{% url 'results_admin' %}">Result Entry</a>
@@ -31,8 +31,12 @@
   </header>
 
   <main class="page-shell final-ranking-page">
-    <h1 class="page-title">Final Ranking</h1>
-    <p class="final-ranking-intro">The complete 1st–9th tournament classification.</p>
+    <h1 class="page-title">{% if ranking_is_final %}Final{% else %}Current{% endif %} Ranking</h1>
+    {% if ranking_is_final %}
+      <p class="final-ranking-intro">The complete 1st–9th tournament classification.</p>
+    {% else %}
+      <p class="final-ranking-intro">Positions update automatically as the tournament progresses.</p>
+    {% endif %}
 
     <ol class="final-ranking-list">
       {% for placement in final_placements %}

@@ -56,6 +56,11 @@ class FinalRankingPageTests(TestCase):
         response = self.client.get(reverse('final_ranking'))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<h1 class="page-title">Current Ranking</h1>')
+        self.assertContains(
+            response,
+            'Positions update automatically as the tournament progresses.',
+        )
         for label in ('1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'):
             self.assertContains(response, f'<span class="final-position">{label}</span>')
 
@@ -164,8 +169,37 @@ class FinalRankingPageTests(TestCase):
         for team in teams.values():
             self.assertNotContains(response, team.name)
 
-    def test_public_navigation_contains_final_ranking(self):
+        self.assertContains(response, '<h1 class="page-title">Current Ranking</h1>')
+
+    def test_partially_resolved_tournament_still_shows_current_ranking(self):
+        champion = Team.objects.create(name='Champion')
+        runner_up = Team.objects.create(name='Runner-up')
+        self.create_upper_match('UB-04', champion, runner_up, 7, 5)
+
+        response = self.client.get(reverse('final_ranking'))
+
+        self.assertContains(response, '<h1 class="page-title">Current Ranking</h1>')
+
+    def test_completed_upper_and_lower_stages_show_final_ranking(self):
+        champion = Team.objects.create(name='Champion')
+        runner_up = Team.objects.create(name='Runner-up')
+        third = Team.objects.create(name='Third')
+        fourth = Team.objects.create(name='Fourth')
+        self.create_upper_match('UB-04', champion, runner_up, 7, 5)
+        self.create_upper_match('UB-03', third, fourth, 6, 4)
+        self.create_lower_league()
+
+        response = self.client.get(reverse('final_ranking'))
+
+        self.assertContains(response, '<h1 class="page-title">Final Ranking</h1>')
+        self.assertNotContains(
+            response,
+            'Positions update automatically as the tournament progresses.',
+        )
+
+    def test_public_navigation_uses_ranking_label(self):
         response = self.client.get(reverse('home'))
 
         self.assertContains(response, 'href="/final-ranking/"')
-        self.assertContains(response, '>Final Ranking<')
+        self.assertContains(response, '>Ranking<')
+        self.assertNotContains(response, '>Final Ranking<')
