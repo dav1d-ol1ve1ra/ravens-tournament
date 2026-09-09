@@ -541,6 +541,9 @@ fieldset { min-inline-size: 0; }
   .court-event, .court-match { min-height: 5.7rem; }
   .standings-mobile { display: grid; gap: 0.5rem; }
   .standings-desktop { display: none; }
+  .standing-card-main { align-items: start; }
+  .standing-card-team .standing-team-identity { width: 100%; flex-basis: 100%; }
+  .standing-card-team .qualification-badge { margin-left: 2.295rem; }
   .result-filter-panel .filter-label { flex-basis: auto; }
   .result-filter-panel .filter-group { gap: 0.3rem; }
   .result-line { grid-template-columns: minmax(0, 1fr) 3rem auto 3rem minmax(0, 1fr); gap: 0.3rem; }
