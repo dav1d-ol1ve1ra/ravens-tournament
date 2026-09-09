@@ -67,6 +67,25 @@ class StandingsPageTests(TestCase):
         self.assertContains(response, 'class="standings-table"')
         self.assertContains(response, 'Ravens A', count=2)
 
+    def test_uploaded_team_logo_renders_in_mobile_and_desktop_standings(self):
+        self.team_a.logo = 'team_logos/ravens-a.png'
+        self.team_a.save(update_fields=['logo'])
+
+        response = self.client.get(reverse('standings'))
+
+        self.assertContains(
+            response,
+            'src="/media/team_logos/ravens-a.png"',
+            count=2,
+        )
+        self.assertContains(response, 'alt="Ravens A logo"', count=2)
+
+    def test_team_without_logo_uses_initials_fallback(self):
+        response = self.client.get(reverse('standings'))
+
+        self.assertContains(response, 'class="standing-team-placeholder"', count=4)
+        self.assertContains(response, '>RA</span>', count=2)
+
     def test_group_stage_rows_show_upper_and_lower_qualification_badges(self):
         team_a2 = Team.objects.create(name='Team A2', group_slot='A2')
         team_a3 = Team.objects.create(name='Team A3', group_slot='A3')

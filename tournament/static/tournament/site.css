@@ -287,17 +287,24 @@ fieldset { min-inline-size: 0; }
 .position-cell { width: 3.2rem; color: var(--ravens-navy); font-weight: 850; }
 .points-cell { color: var(--ravens-navy); background: #fff7d7; font-weight: 850; }
 .team-name { font-weight: 750; }
+.standing-team-cell-content, .standing-card-team { display: flex; min-width: 0; gap: 0.2rem 0.4rem; align-items: center; flex-wrap: wrap; }
+.standing-team-identity { display: inline-flex; min-width: 0; gap: 0.42rem; align-items: center; }
+.standing-team-identity .team-name, .standing-team-identity strong { min-width: 0; overflow-wrap: break-word; word-break: normal; }
+.standing-team-logo, .standing-team-placeholder { width: 1.625rem; height: 1.625rem; flex: 0 0 1.625rem; border: 1px solid var(--border); border-radius: 50%; }
+.standing-team-logo { object-fit: contain; background: white; }
+.standing-team-placeholder { display: inline-grid; place-items: center; color: var(--ravens-navy); background: #fff0bd; font-size: 0.56rem; font-weight: 900; letter-spacing: 0.02em; }
 .manual-tiebreak { display: block; width: fit-content; margin-top: 0.25rem; padding: 0.15rem 0.42rem; border-radius: 99px; color: #805900; background: #fff0bd; font-size: 0.7rem; font-weight: 750; white-space: nowrap; }
 .standing-card { display: grid; gap: 0.38rem; min-width: 0; padding: 0.68rem 0.72rem; border: 1px solid var(--border); border-left: 4px solid var(--ravens-gold); border-radius: 0.55rem; background: var(--card-bg); box-shadow: 0 1px 2px rgb(7 26 51 / 6%); }
 .standing-card-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.45rem; align-items: baseline; }
 .standing-card-position { min-width: 1.4rem; color: var(--ravens-navy); font-size: 1rem; font-weight: 900; }
-.standing-card-team { min-width: 0; color: var(--ravens-navy); line-height: 1.2; overflow-wrap: break-word; word-break: normal; }
+.standing-card-team { color: var(--ravens-navy); line-height: 1.2; overflow-wrap: break-word; word-break: normal; }
 .standing-card-team strong { overflow-wrap: break-word; word-break: normal; }
+.standing-card-team .standing-team-identity { flex: 1 1 8rem; }
+.standing-card-team .standing-team-logo, .standing-card-team .standing-team-placeholder { width: 1.875rem; height: 1.875rem; flex-basis: 1.875rem; }
 .standing-card-points { padding: 0.16rem 0.38rem; border-radius: 0.3rem; color: var(--ravens-navy); background: #fff0bd; white-space: nowrap; }
 .qualification-badge { display: inline-block; margin: 0.1rem 0 0; padding: 0.1rem 0.34rem; border-radius: 99px; font-size: 0.64rem; font-weight: 850; letter-spacing: 0.04em; line-height: 1.25; text-transform: uppercase; vertical-align: middle; white-space: nowrap; }
 .qualification-upper { color: #694900; background: #fff0bd; }
 .qualification-lower { color: #46576d; background: #e6ebf0; }
-.team-name + .qualification-badge { margin-left: 0.35rem; }
 .standing-card-stats { display: flex; gap: 0.38rem 0.75rem; padding-left: 1.85rem; color: var(--muted); font-size: 0.78rem; flex-wrap: wrap; }
 .standing-card-stats span { white-space: nowrap; }
 .standing-card-stats abbr { color: var(--ravens-navy-light); font-weight: 850; text-decoration: none; }

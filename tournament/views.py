@@ -368,6 +368,11 @@ def schedule(request):
 
 def standings(request):
     calculated_groups = calculate_group_stage_standings()
+    lower_standings = calculate_lower_standings()
+
+    for rows in (*calculated_groups.values(), lower_standings.rows):
+        for row in rows:
+            row.team.initials = team_initials(row.team)
 
     return render(
         request,
@@ -377,7 +382,7 @@ def standings(request):
                 'A': calculated_groups.get('A', []),
                 'B': calculated_groups.get('B', []),
             },
-            'lower_standings': calculate_lower_standings(),
+            'lower_standings': lower_standings,
         },
     )
 

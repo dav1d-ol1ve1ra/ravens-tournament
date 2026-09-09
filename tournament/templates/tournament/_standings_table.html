@@ -4,7 +4,14 @@
       <div class="standing-card-main">
         <span class="standing-card-position">{% if row.position %}{{ row.position }}.{% else %}&mdash;{% endif %}</span>
         <span class="standing-card-team">
-          <strong>{{ row.team.name }}</strong>
+          <span class="standing-team-identity">
+            {% if row.team.logo %}
+              <img class="standing-team-logo" src="{{ row.team.logo.url }}" alt="{{ row.team.name }} logo">
+            {% else %}
+              <span class="standing-team-placeholder" aria-hidden="true">{{ row.team.initials }}</span>
+            {% endif %}
+            <strong>{{ row.team.name }}</strong>
+          </span>
           {% if show_qualification_badges and row.position %}
             <span class="qualification-badge {% if row.position <= 2 %}qualification-upper{% else %}qualification-lower{% endif %}" data-qualification="{% if row.position <= 2 %}upper{% else %}lower{% endif %}">{% if row.position <= 2 %}UPPER{% else %}LOWER{% endif %}</span>
           {% endif %}
@@ -50,10 +57,19 @@
         <tr>
           <td class="position-cell">{% if row.position %}{{ row.position }}{% else %}&mdash;{% endif %}</td>
           <td>
-            <span class="team-name">{{ row.team.name }}</span>
-            {% if show_qualification_badges and row.position %}
-              <span class="qualification-badge {% if row.position <= 2 %}qualification-upper{% else %}qualification-lower{% endif %}" data-qualification="{% if row.position <= 2 %}upper{% else %}lower{% endif %}">{% if row.position <= 2 %}UPPER{% else %}LOWER{% endif %}</span>
-            {% endif %}
+            <span class="standing-team-cell-content">
+              <span class="standing-team-identity">
+                {% if row.team.logo %}
+                  <img class="standing-team-logo" src="{{ row.team.logo.url }}" alt="{{ row.team.name }} logo">
+                {% else %}
+                  <span class="standing-team-placeholder" aria-hidden="true">{{ row.team.initials }}</span>
+                {% endif %}
+                <span class="team-name">{{ row.team.name }}</span>
+              </span>
+              {% if show_qualification_badges and row.position %}
+                <span class="qualification-badge {% if row.position <= 2 %}qualification-upper{% else %}qualification-lower{% endif %}" data-qualification="{% if row.position <= 2 %}upper{% else %}lower{% endif %}">{% if row.position <= 2 %}UPPER{% else %}LOWER{% endif %}</span>
+              {% endif %}
+            </span>
             {% if row.requires_manual_tiebreak %}
               <span class="manual-tiebreak">Manual tie-break required</span>
             {% endif %}
