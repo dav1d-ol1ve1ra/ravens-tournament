@@ -43,11 +43,15 @@ class SyncFinalScheduleTests(TestCase):
     def _restore_previous_schedule_values(self):
         ll_01 = Match.objects.get(match_code='LL-01')
         ll_01.start_time = time(16, 55)
-        ll_01.referee_slot = 'B4'
+        ll_01.referee_slot = 'A3'
         ll_01.save(update_fields=['start_time', 'referee_slot'])
         ScheduleEvent.objects.filter(pk=ll_01.schedule_event_id).update(
             start_time=time(16, 55)
         )
+
+        group_b_06 = Match.objects.get(match_code='GS-B-06')
+        group_b_06.referee_slot = 'B1'
+        group_b_06.save(update_fields=['referee_slot'])
 
         ll_03 = Match.objects.get(match_code='LL-03')
         ll_03.home_slot, ll_03.away_slot = '4A', '3A'
@@ -141,6 +145,34 @@ class SyncFinalScheduleTests(TestCase):
         self.assertEqual((ll_03.home_slot, ll_03.away_slot), ('3A', '4A'))
         self.assertEqual((ll_03.home_team, ll_03.away_team), (self.teams[2], self.teams[3]))
         self.assertEqual((ll_03.home_score, ll_03.away_score), (2, 6))
+
+    def test_updates_saturday_referee_sources_without_deleting_results(self):
+        group_match = Match.objects.get(match_code='GS-B-06')
+        group_match.home_team = self.teams[6]
+        group_match.away_team = self.teams[7]
+        group_match.home_score = 7
+        group_match.away_score = 5
+        group_match.status = Match.Status.FINISHED
+        group_match.save(
+            update_fields=[
+                'home_team',
+                'away_team',
+                'home_score',
+                'away_score',
+                'status',
+            ]
+        )
+
+        self.run_sync()
+        group_match.refresh_from_db()
+        lower_match = Match.objects.get(match_code='LL-01')
+
+        self.assertEqual(group_match.referee_slot, '1A')
+        self.assertEqual(lower_match.referee_slot, '3A')
+        self.assertEqual(
+            (group_match.home_score, group_match.away_score, group_match.status),
+            (7, 5, Match.Status.FINISHED),
+        )
 
     def test_preserves_teams_users_group_assignments_and_manual_tiebreaks(self):
         team_ids = list(Team.objects.order_by('pk').values_list('pk', flat=True))

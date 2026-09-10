@@ -12,6 +12,7 @@ from django.urls import reverse
 from tournament.models import Group, Match, ScheduleEvent, Team
 from tournament.services.knockout_slots import resolve_knockout_slots
 from tournament.services.progression_slots import resolve_progression_slots
+from tournament.slot_resolution import resolve_group_stage_slots
 
 
 class ConfirmedTournamentSeedTests(TestCase):
@@ -154,7 +155,7 @@ class ConfirmedTournamentSeedTests(TestCase):
                 saturday_lower.away_slot,
                 saturday_lower.referee_slot,
             ),
-            (1, time(17, 10), time(18), 'Court 2', '4A', '5A', 'A3'),
+            (1, time(17, 10), time(18), 'Court 2', '4A', '5A', '3A'),
         )
         self.assertTrue(
             Match.objects.filter(
@@ -162,7 +163,7 @@ class ConfirmedTournamentSeedTests(TestCase):
                 day=1,
                 start_time=time(16, 55),
                 court='Court 1',
-                referee_slot='B1',
+                referee_slot='1A',
             ).exists()
         )
         self.assertTrue(
@@ -193,8 +194,8 @@ class ConfirmedTournamentSeedTests(TestCase):
             'GS-A-09': (time(15, 50), 'Court 1', 'A2', 'A3', 'B2'),
             'GS-A-10': (time(15, 50), 'Court 2', 'A4', 'A5', 'B3'),
             'GS-B-05': (time(15, 50), 'Court 3', 'B1', 'B4', 'A1'),
-            'GS-B-06': (time(16, 55), 'Court 1', 'B2', 'B3', 'B1'),
-            'LL-01': (time(17, 10), 'Court 2', '4A', '5A', 'A3'),
+            'GS-B-06': (time(16, 55), 'Court 1', 'B2', 'B3', '1A'),
+            'LL-01': (time(17, 10), 'Court 2', '4A', '5A', '3A'),
         }
 
         actual = {
@@ -288,6 +289,29 @@ class ConfirmedTournamentSeedTests(TestCase):
 
         self.assertEqual(Match.objects.get(match_code='LL-05').referee_team, teams[0])
         self.assertEqual(Match.objects.get(match_code='LL-06').referee_team, teams[3])
+
+    def test_saturday_ranking_referees_resolve_after_group_a_completes(self):
+        teams = list(Team.objects.order_by('pk'))
+        for position, team in enumerate(teams, start=1):
+            team.group_slot = f'A{position}' if position <= 5 else f'B{position - 5}'
+        Team.objects.bulk_update(teams, ['group_slot'])
+        resolve_group_stage_slots()
+
+        Match.objects.filter(phase='group_stage', group__code='A').update(
+            home_score=2,
+            away_score=0,
+            status=Match.Status.FINISHED,
+        )
+        resolve_progression_slots()
+
+        self.assertEqual(
+            Match.objects.get(match_code='GS-B-06').referee_team,
+            teams[0],
+        )
+        self.assertEqual(
+            Match.objects.get(match_code='LL-01').referee_team,
+            teams[2],
+        )
 
     def test_public_schedule_keeps_overlapping_saturday_rows_distinct(self):
         list_response = self.client.get(reverse('schedule'))
